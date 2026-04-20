@@ -1,0 +1,8 @@
+---
+common_name: promptviser
+san:
+  - spiffe://promptviser/client
+names:
+  - C: US
+    L: WA
+    O: promptviser.com

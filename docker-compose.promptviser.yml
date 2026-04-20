@@ -1,0 +1,60 @@
+networks:
+  private:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 168.139.57.0/24
+
+services:
+  sql:
+    image: effectivesecurity/postgres15:sha-d151f03
+    platform: linux/amd64
+    networks:
+      private:
+        ipv4_address: 168.139.57.20
+    volumes:
+      # Mounts the volumes from build container to the container in test
+      # docker-compose command runs with ./sql as CWD,
+      # the source path in the volume definitions are relative to ./sql
+      - ./sql:/promptviser_sql
+    ports:
+      - "127.0.0.1:25432:25432" # SQL
+    environment:
+      - POSTGRES_PORT=25432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    entrypoint:
+      - /bin/bash
+      - -c
+      - /start_postgres.sh
+
+  # kms:
+  #   image: nsmithuk/local-kms
+  #   networks:
+  #     private:
+  #       ipv4_address: 168.139.57.21
+  #   ports:
+  #     - "14551:14551" # KMS
+  #   environment:
+  #     - PORT=14551
+
+  redis:
+    image: redis:8.2
+    networks:
+      private:
+        ipv4_address: 168.139.57.102
+    ports:
+      - "127.0.0.1:36379:6379" # Redis
+    volumes:
+      - /tmp/promptviser/localstack:/promptviser
+    command:
+      [
+        "--port 0",
+        "--tls-port 6379",
+        "--tls-cert-file /promptviser/promptviser_peer.pem",
+        "--tls-key-file /promptviser/promptviser_peer.key",
+        "--tls-ca-cert-file /promptviser/trusty_root_ca.pem",
+        "--tls-auth-clients no",
+        "--requirepass redis",
+      ]
