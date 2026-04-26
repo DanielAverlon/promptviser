@@ -73,6 +73,16 @@ var methods = map[string]*MethodInfo{
 		CliCmd:    "submit",
 	},
 
+	Adviser_MatchRules_FullMethodName: {
+		Allocator: func() any { return new(MatchRulesRequest) },
+		CliCmd:    "match-rules",
+	},
+
+	Adviser_GetRules_FullMethodName: {
+		Allocator: func() any { return new(GetRulesRequest) },
+		CliCmd:    "get-rules",
+	},
+
 	Status_Version_FullMethodName: {
 		Allocator: func() any { return new(emptypb.Empty) },
 		CliCmd:    "version",

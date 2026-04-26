@@ -1,6 +1,9 @@
 package adviserdb
 
 import (
+	"context"
+
+	"github.com/effective-security/promptviser/internal/adviserdb/model"
 	pgsql "github.com/effective-security/promptviser/internal/adviserdb/pqsql"
 	"github.com/effective-security/xdb"
 	"github.com/effective-security/xdb/pkg/flake"
@@ -13,18 +16,21 @@ import (
 
 //go:generate mockgen -source=adviserdb.go -destination=../../mocks/mockadviserdb/adviserdb_mock.gen.go -package mockadviserdb
 
-// CaReadonlyDb defines an interface for Read operations on Certs
+// Rule is re-exported from the model package for convenience.
+type Rule = model.Rule
+
+// AdviserReadonlyDb defines an interface for Read operations on Certs
 type AdviserReadonlyDb interface {
 	xdb.IDGenerator
 
-	// TODO: add readonly methods
+	// GetAllRules returns all rules, optionally filtered by domain and/or severity.
+	// An empty string for domain or severity means "no filter".
+	GetAllRules(ctx context.Context, domain, severity string) ([]*model.Rule, error)
 }
 
 // AdviserDb defines an interface for CRUD operations on Adviser
 type AdviserDb interface {
 	AdviserReadonlyDb
-
-	// TODO: add CRUD methods
 }
 
 // Provider provides complete DB access

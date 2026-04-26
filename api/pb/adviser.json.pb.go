@@ -48,3 +48,63 @@ func (msg *SubmitResponse) MarshalJSON() ([]byte, error) {
 func (msg *SubmitResponse) UnmarshalJSON(b []byte) error {
 	return JsonUnmarshalOptions.Unmarshal(b, msg)
 }
+
+// MarshalJSON implements json.Marshaler
+func (msg *DimensionScore) MarshalJSON() ([]byte, error) {
+	return JsonMarshalOptions.Marshal(msg)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (msg *DimensionScore) UnmarshalJSON(b []byte) error {
+	return JsonUnmarshalOptions.Unmarshal(b, msg)
+}
+
+// MarshalJSON implements json.Marshaler
+func (msg *MatchRulesRequest) MarshalJSON() ([]byte, error) {
+	return JsonMarshalOptions.Marshal(msg)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (msg *MatchRulesRequest) UnmarshalJSON(b []byte) error {
+	return JsonUnmarshalOptions.Unmarshal(b, msg)
+}
+
+// MarshalJSON implements json.Marshaler
+func (msg *Finding) MarshalJSON() ([]byte, error) {
+	return JsonMarshalOptions.Marshal(msg)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (msg *Finding) UnmarshalJSON(b []byte) error {
+	return JsonUnmarshalOptions.Unmarshal(b, msg)
+}
+
+// MarshalJSON implements json.Marshaler
+func (msg *MatchRulesResponse) MarshalJSON() ([]byte, error) {
+	return JsonMarshalOptions.Marshal(msg)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (msg *MatchRulesResponse) UnmarshalJSON(b []byte) error {
+	return JsonUnmarshalOptions.Unmarshal(b, msg)
+}
+
+// MarshalJSON implements json.Marshaler
+func (msg *GetRulesRequest) MarshalJSON() ([]byte, error) {
+	return JsonMarshalOptions.Marshal(msg)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (msg *GetRulesRequest) UnmarshalJSON(b []byte) error {
+	return JsonUnmarshalOptions.Unmarshal(b, msg)
+}
+
+// MarshalJSON implements json.Marshaler
+func (msg *GetRulesResponse) MarshalJSON() ([]byte, error) {
+	return JsonMarshalOptions.Marshal(msg)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (msg *GetRulesResponse) UnmarshalJSON(b []byte) error {
+	return JsonUnmarshalOptions.Unmarshal(b, msg)
+}

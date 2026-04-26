@@ -77,6 +77,7 @@ func TestCheckErrIDConflict(t *testing.T) {
 
 func Test_ListTables(t *testing.T) {
 	expectedTables := []string{
+		"rules",
 		"schema_migrations",
 	}
 	require.NotNil(t, provider)
