@@ -56,3 +56,24 @@ func (m *MockAdviserServer) Submit(ctx context.Context, req *pb.SubmitRequest) (
 	}
 	return m.next().(*pb.SubmitResponse), nil
 }
+
+// MatchRules evaluates anonymized dimension scores and static triggers against
+// the rules database and returns matching findings. Prompt text never leaves
+// the client — only numeric scores and metadata flags are sent.
+
+func (m *MockAdviserServer) MatchRules(ctx context.Context, req *pb.MatchRulesRequest) (*pb.MatchRulesResponse, error) {
+	if m.Err != nil {
+		return nil, m.Err
+	}
+	return m.next().(*pb.MatchRulesResponse), nil
+}
+
+// GetRules returns all rules so the client can cache them locally for
+// offline Pass 1 evaluation.
+
+func (m *MockAdviserServer) GetRules(ctx context.Context, req *pb.GetRulesRequest) (*pb.GetRulesResponse, error) {
+	if m.Err != nil {
+		return nil, m.Err
+	}
+	return m.next().(*pb.GetRulesResponse), nil
+}

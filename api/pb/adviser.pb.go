@@ -113,6 +113,375 @@ func (x *SubmitResponse) GetID() string {
 	return ""
 }
 
+// DimensionScore represents a single LLM-scored quality or risk dimension.
+// Values are normalised floats in [0, 1].
+type DimensionScore struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Dimension is the name of the scoring dimension, e.g. "pii_exposure".
+	Dimension string `protobuf:"bytes,1,opt,name=Dimension,proto3" json:"Dimension,omitempty"`
+	// Score is the normalised value in [0, 1].
+	Score         float32 `protobuf:"fixed32,2,opt,name=Score,proto3" json:"Score,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DimensionScore) Reset() {
+	*x = DimensionScore{}
+	mi := &file_adviser_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DimensionScore) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DimensionScore) ProtoMessage() {}
+
+func (x *DimensionScore) ProtoReflect() protoreflect.Message {
+	mi := &file_adviser_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DimensionScore.ProtoReflect.Descriptor instead.
+func (*DimensionScore) Descriptor() ([]byte, []int) {
+	return file_adviser_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *DimensionScore) GetDimension() string {
+	if x != nil {
+		return x.Dimension
+	}
+	return ""
+}
+
+func (x *DimensionScore) GetScore() float32 {
+	if x != nil {
+		return x.Score
+	}
+	return 0
+}
+
+// MatchRulesRequest carries anonymised signals from the local scanner.
+// No prompt text is included — only derived scores and metadata.
+type MatchRulesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Scores contains LLM-derived dimension scores (Pass 3 output).
+	Scores []*DimensionScore `protobuf:"bytes,1,rep,name=Scores,proto3" json:"Scores,omitempty"`
+	// MetadataFlags carries boolean YAML metadata, e.g. "is_user_facing",
+	// "domain:medical".
+	MetadataFlags []string `protobuf:"bytes,2,rep,name=MetadataFlags,proto3" json:"MetadataFlags,omitempty"`
+	// StaticTriggers lists rule IDs or named patterns that fired locally during
+	// Pass 1 / Pass 2 (regex + AST), e.g. "MISSING_DELIMITER",
+	// "HARDCODED_SECRET".
+	StaticTriggers []string `protobuf:"bytes,3,rep,name=StaticTriggers,proto3" json:"StaticTriggers,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *MatchRulesRequest) Reset() {
+	*x = MatchRulesRequest{}
+	mi := &file_adviser_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MatchRulesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MatchRulesRequest) ProtoMessage() {}
+
+func (x *MatchRulesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_adviser_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MatchRulesRequest.ProtoReflect.Descriptor instead.
+func (*MatchRulesRequest) Descriptor() ([]byte, []int) {
+	return file_adviser_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *MatchRulesRequest) GetScores() []*DimensionScore {
+	if x != nil {
+		return x.Scores
+	}
+	return nil
+}
+
+func (x *MatchRulesRequest) GetMetadataFlags() []string {
+	if x != nil {
+		return x.MetadataFlags
+	}
+	return nil
+}
+
+func (x *MatchRulesRequest) GetStaticTriggers() []string {
+	if x != nil {
+		return x.StaticTriggers
+	}
+	return nil
+}
+
+// Finding is a single matched rule with remediation guidance.
+type Finding struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// RuleID is the stable identifier, e.g. "PRIV-001".
+	RuleID string `protobuf:"bytes,1,opt,name=RuleID,proto3" json:"RuleID,omitempty"`
+	// Title is the human-readable name.
+	Title string `protobuf:"bytes,2,opt,name=Title,proto3" json:"Title,omitempty"`
+	// Severity is one of: Critical, High, Medium, Low.
+	Severity string `protobuf:"bytes,3,opt,name=Severity,proto3" json:"Severity,omitempty"`
+	// Domain is the rule category, e.g. "Data Privacy & Confidentiality".
+	Domain string `protobuf:"bytes,4,opt,name=Domain,proto3" json:"Domain,omitempty"`
+	// Remediation is the suggested fix text.
+	Remediation string `protobuf:"bytes,5,opt,name=Remediation,proto3" json:"Remediation,omitempty"`
+	// Standards lists applicable compliance references, e.g. "OWASP LLM01".
+	Standards []string `protobuf:"bytes,6,rep,name=Standards,proto3" json:"Standards,omitempty"`
+	// TriggerType is one of: static, score, meta, or combined.
+	TriggerType   string `protobuf:"bytes,7,opt,name=TriggerType,proto3" json:"TriggerType,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Finding) Reset() {
+	*x = Finding{}
+	mi := &file_adviser_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Finding) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Finding) ProtoMessage() {}
+
+func (x *Finding) ProtoReflect() protoreflect.Message {
+	mi := &file_adviser_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Finding.ProtoReflect.Descriptor instead.
+func (*Finding) Descriptor() ([]byte, []int) {
+	return file_adviser_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Finding) GetRuleID() string {
+	if x != nil {
+		return x.RuleID
+	}
+	return ""
+}
+
+func (x *Finding) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *Finding) GetSeverity() string {
+	if x != nil {
+		return x.Severity
+	}
+	return ""
+}
+
+func (x *Finding) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *Finding) GetRemediation() string {
+	if x != nil {
+		return x.Remediation
+	}
+	return ""
+}
+
+func (x *Finding) GetStandards() []string {
+	if x != nil {
+		return x.Standards
+	}
+	return nil
+}
+
+func (x *Finding) GetTriggerType() string {
+	if x != nil {
+		return x.TriggerType
+	}
+	return ""
+}
+
+// MatchRulesResponse contains all rules that fired for the given input.
+type MatchRulesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Findings      []*Finding             `protobuf:"bytes,1,rep,name=Findings,proto3" json:"Findings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MatchRulesResponse) Reset() {
+	*x = MatchRulesResponse{}
+	mi := &file_adviser_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MatchRulesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MatchRulesResponse) ProtoMessage() {}
+
+func (x *MatchRulesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_adviser_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MatchRulesResponse.ProtoReflect.Descriptor instead.
+func (*MatchRulesResponse) Descriptor() ([]byte, []int) {
+	return file_adviser_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *MatchRulesResponse) GetFindings() []*Finding {
+	if x != nil {
+		return x.Findings
+	}
+	return nil
+}
+
+// GetRulesRequest allows optional domain or severity filtering.
+type GetRulesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Domain filters by rule domain; empty means all domains.
+	Domain string `protobuf:"bytes,1,opt,name=Domain,proto3" json:"Domain,omitempty"`
+	// Severity filters by minimum severity; empty means all severities.
+	Severity      string `protobuf:"bytes,2,opt,name=Severity,proto3" json:"Severity,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRulesRequest) Reset() {
+	*x = GetRulesRequest{}
+	mi := &file_adviser_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRulesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRulesRequest) ProtoMessage() {}
+
+func (x *GetRulesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_adviser_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRulesRequest.ProtoReflect.Descriptor instead.
+func (*GetRulesRequest) Descriptor() ([]byte, []int) {
+	return file_adviser_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetRulesRequest) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
+}
+
+func (x *GetRulesRequest) GetSeverity() string {
+	if x != nil {
+		return x.Severity
+	}
+	return ""
+}
+
+// GetRulesResponse returns the full rule catalogue.
+type GetRulesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rules         []*Finding             `protobuf:"bytes,1,rep,name=Rules,proto3" json:"Rules,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRulesResponse) Reset() {
+	*x = GetRulesResponse{}
+	mi := &file_adviser_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRulesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRulesResponse) ProtoMessage() {}
+
+func (x *GetRulesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_adviser_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRulesResponse.ProtoReflect.Descriptor instead.
+func (*GetRulesResponse) Descriptor() ([]byte, []int) {
+	return file_adviser_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetRulesResponse) GetRules() []*Finding {
+	if x != nil {
+		return x.Rules
+	}
+	return nil
+}
+
 var File_adviser_proto protoreflect.FileDescriptor
 
 const file_adviser_proto_rawDesc = "" +
@@ -121,9 +490,34 @@ const file_adviser_proto_rawDesc = "" +
 	"\rSubmitRequest\x12\x12\n" +
 	"\x04Data\x18\x01 \x01(\tR\x04Data\" \n" +
 	"\x0eSubmitResponse\x12\x0e\n" +
-	"\x02ID\x18\x01 \x01(\tR\x02ID2b\n" +
+	"\x02ID\x18\x01 \x01(\tR\x02ID\"D\n" +
+	"\x0eDimensionScore\x12\x1c\n" +
+	"\tDimension\x18\x01 \x01(\tR\tDimension\x12\x14\n" +
+	"\x05Score\x18\x02 \x01(\x02R\x05Score\"\x8d\x01\n" +
+	"\x11MatchRulesRequest\x12*\n" +
+	"\x06Scores\x18\x01 \x03(\v2\x12.pb.DimensionScoreR\x06Scores\x12$\n" +
+	"\rMetadataFlags\x18\x02 \x03(\tR\rMetadataFlags\x12&\n" +
+	"\x0eStaticTriggers\x18\x03 \x03(\tR\x0eStaticTriggers\"\xcd\x01\n" +
+	"\aFinding\x12\x16\n" +
+	"\x06RuleID\x18\x01 \x01(\tR\x06RuleID\x12\x14\n" +
+	"\x05Title\x18\x02 \x01(\tR\x05Title\x12\x1a\n" +
+	"\bSeverity\x18\x03 \x01(\tR\bSeverity\x12\x16\n" +
+	"\x06Domain\x18\x04 \x01(\tR\x06Domain\x12 \n" +
+	"\vRemediation\x18\x05 \x01(\tR\vRemediation\x12\x1c\n" +
+	"\tStandards\x18\x06 \x03(\tR\tStandards\x12 \n" +
+	"\vTriggerType\x18\a \x01(\tR\vTriggerType\"=\n" +
+	"\x12MatchRulesResponse\x12'\n" +
+	"\bFindings\x18\x01 \x03(\v2\v.pb.FindingR\bFindings\"E\n" +
+	"\x0fGetRulesRequest\x12\x16\n" +
+	"\x06Domain\x18\x01 \x01(\tR\x06Domain\x12\x1a\n" +
+	"\bSeverity\x18\x02 \x01(\tR\bSeverity\"5\n" +
+	"\x10GetRulesResponse\x12!\n" +
+	"\x05Rules\x18\x01 \x03(\v2\v.pb.FindingR\x05Rules2\xb4\x02\n" +
 	"\aAdviser\x12W\n" +
-	"\x06Submit\x12\x11.pb.SubmitRequest\x1a\x12.pb.SubmitResponse\"&\x82C\x06submit\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/pb.Adviser/SubmitB2Z0github.com/effective-security/promptviser/api/pbb\x06proto3"
+	"\x06Submit\x12\x11.pb.SubmitRequest\x1a\x12.pb.SubmitResponse\"&\x82C\x06submit\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/pb.Adviser/Submit\x12l\n" +
+	"\n" +
+	"MatchRules\x12\x15.pb.MatchRulesRequest\x1a\x16.pb.MatchRulesResponse\"/\x82C\vmatch-rules\x82\xd3\xe4\x93\x02\x1b:\x01*\"\x16/pb.Adviser/MatchRules\x12b\n" +
+	"\bGetRules\x12\x13.pb.GetRulesRequest\x1a\x14.pb.GetRulesResponse\"+\x82C\tget-rules\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/pb.Adviser/GetRulesB2Z0github.com/effective-security/promptviser/api/pbb\x06proto3"
 
 var (
 	file_adviser_proto_rawDescOnce sync.Once
@@ -137,19 +531,32 @@ func file_adviser_proto_rawDescGZIP() []byte {
 	return file_adviser_proto_rawDescData
 }
 
-var file_adviser_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_adviser_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_adviser_proto_goTypes = []any{
-	(*SubmitRequest)(nil),  // 0: pb.SubmitRequest
-	(*SubmitResponse)(nil), // 1: pb.SubmitResponse
+	(*SubmitRequest)(nil),      // 0: pb.SubmitRequest
+	(*SubmitResponse)(nil),     // 1: pb.SubmitResponse
+	(*DimensionScore)(nil),     // 2: pb.DimensionScore
+	(*MatchRulesRequest)(nil),  // 3: pb.MatchRulesRequest
+	(*Finding)(nil),            // 4: pb.Finding
+	(*MatchRulesResponse)(nil), // 5: pb.MatchRulesResponse
+	(*GetRulesRequest)(nil),    // 6: pb.GetRulesRequest
+	(*GetRulesResponse)(nil),   // 7: pb.GetRulesResponse
 }
 var file_adviser_proto_depIdxs = []int32{
-	0, // 0: pb.Adviser.Submit:input_type -> pb.SubmitRequest
-	1, // 1: pb.Adviser.Submit:output_type -> pb.SubmitResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	2, // 0: pb.MatchRulesRequest.Scores:type_name -> pb.DimensionScore
+	4, // 1: pb.MatchRulesResponse.Findings:type_name -> pb.Finding
+	4, // 2: pb.GetRulesResponse.Rules:type_name -> pb.Finding
+	0, // 3: pb.Adviser.Submit:input_type -> pb.SubmitRequest
+	3, // 4: pb.Adviser.MatchRules:input_type -> pb.MatchRulesRequest
+	6, // 5: pb.Adviser.GetRules:input_type -> pb.GetRulesRequest
+	1, // 6: pb.Adviser.Submit:output_type -> pb.SubmitResponse
+	5, // 7: pb.Adviser.MatchRules:output_type -> pb.MatchRulesResponse
+	7, // 8: pb.Adviser.GetRules:output_type -> pb.GetRulesResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_adviser_proto_init() }
@@ -163,7 +570,7 @@ func file_adviser_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_adviser_proto_rawDesc), len(file_adviser_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

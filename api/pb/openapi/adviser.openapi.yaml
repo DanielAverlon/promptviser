@@ -6,6 +6,61 @@ info:
     title: Adviser API
     version: 0.0.1
 paths:
+    /pb.Adviser/GetRules:
+        post:
+            tags:
+                - Adviser
+            description: |-
+                GetRules returns all rules so the client can cache them locally for
+                 offline Pass 1 evaluation.
+            operationId: Adviser_GetRules
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/GetRulesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GetRulesResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /pb.Adviser/MatchRules:
+        post:
+            tags:
+                - Adviser
+            description: |-
+                MatchRules evaluates anonymized dimension scores and static triggers against
+                 the rules database and returns matching findings. Prompt text never leaves
+                 the client — only numeric scores and metadata flags are sent.
+            operationId: Adviser_MatchRules
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/MatchRulesRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/MatchRulesResponse'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
     /pb.Adviser/Submit:
         post:
             tags:
@@ -33,6 +88,64 @@ paths:
                                 $ref: '#/components/schemas/Status'
 components:
     schemas:
+        DimensionScore:
+            type: object
+            properties:
+                Dimension:
+                    type: string
+                    description: Dimension is the name of the scoring dimension, e.g. "pii_exposure".
+                Score:
+                    type: number
+                    description: Score is the normalised value in [0, 1].
+                    format: float
+            description: |-
+                DimensionScore represents a single LLM-scored quality or risk dimension.
+                 Values are normalised floats in [0, 1].
+        Finding:
+            type: object
+            properties:
+                RuleID:
+                    type: string
+                    description: RuleID is the stable identifier, e.g. "PRIV-001".
+                Title:
+                    type: string
+                    description: Title is the human-readable name.
+                Severity:
+                    type: string
+                    description: 'Severity is one of: Critical, High, Medium, Low.'
+                Domain:
+                    type: string
+                    description: Domain is the rule category, e.g. "Data Privacy & Confidentiality".
+                Remediation:
+                    type: string
+                    description: Remediation is the suggested fix text.
+                Standards:
+                    type: array
+                    items:
+                        type: string
+                    description: Standards lists applicable compliance references, e.g. "OWASP LLM01".
+                TriggerType:
+                    type: string
+                    description: 'TriggerType is one of: static, score, meta, or combined.'
+            description: Finding is a single matched rule with remediation guidance.
+        GetRulesRequest:
+            type: object
+            properties:
+                Domain:
+                    type: string
+                    description: Domain filters by rule domain; empty means all domains.
+                Severity:
+                    type: string
+                    description: Severity filters by minimum severity; empty means all severities.
+            description: GetRulesRequest allows optional domain or severity filtering.
+        GetRulesResponse:
+            type: object
+            properties:
+                Rules:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Finding'
+            description: GetRulesResponse returns the full rule catalogue.
         GoogleProtobufAny:
             type: object
             properties:
@@ -41,6 +154,40 @@ components:
                     description: The type of the serialized message.
             additionalProperties: true
             description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
+        MatchRulesRequest:
+            type: object
+            properties:
+                Scores:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DimensionScore'
+                    description: Scores contains LLM-derived dimension scores (Pass 3 output).
+                MetadataFlags:
+                    type: array
+                    items:
+                        type: string
+                    description: |-
+                        MetadataFlags carries boolean YAML metadata, e.g. "is_user_facing",
+                         "domain:medical".
+                StaticTriggers:
+                    type: array
+                    items:
+                        type: string
+                    description: |-
+                        StaticTriggers lists rule IDs or named patterns that fired locally during
+                         Pass 1 / Pass 2 (regex + AST), e.g. "MISSING_DELIMITER",
+                         "HARDCODED_SECRET".
+            description: |-
+                MatchRulesRequest carries anonymised signals from the local scanner.
+                 No prompt text is included — only derived scores and metadata.
+        MatchRulesResponse:
+            type: object
+            properties:
+                Findings:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Finding'
+            description: MatchRulesResponse contains all rules that fired for the given input.
         Status:
             type: object
             properties:

@@ -19,6 +19,7 @@ type app struct {
 	//Caller     command.CallerCmd     `cmd:"" help:"print caller info"`
 
 	Submit command.SubmitCmd `cmd:"" help:"Submit data for analysis"`
+	Rules  command.RulesCmd  `cmd:"" help:"Print remote server rules"`
 }
 
 func main() {

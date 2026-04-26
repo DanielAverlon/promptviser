@@ -23,6 +23,194 @@ rpc Bar(google.protobuf.Empty) returns (google.protobuf.Empty);
 	Fields: []*api.FieldMeta{},
 }
 
+var DimensionScore_MessageDescription = &api.MessageDescription{
+	Name:     "DimensionScore",
+	Display:  "Dimension Score",
+	FullName: "pb.DimensionScore",
+	Documentation: `DimensionScore represents a single LLM-scored quality or risk dimension.
+Values are normalised floats in [0, 1].`,
+	Fields: []*api.FieldMeta{
+		{
+			Name:          "Dimension",
+			FullName:      "pb.DimensionScore.Dimension",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `Dimension is the name of the scoring dimension, e.g. "pii_exposure".`,
+		},
+		{
+			Name:          "Score",
+			FullName:      "pb.DimensionScore.Score",
+			Type:          "float32",
+			SearchType:    "float",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `Score is the normalised value in [0, 1].`,
+		},
+	},
+}
+
+var Finding_MessageDescription = &api.MessageDescription{
+	Name:          "Finding",
+	FullName:      "pb.Finding",
+	Documentation: `Finding is a single matched rule with remediation guidance.`,
+	Fields: []*api.FieldMeta{
+		{
+			Name:          "RuleID",
+			FullName:      "pb.Finding.RuleID",
+			Display:       "Rule ID",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `RuleID is the stable identifier, e.g. "PRIV-001".`,
+		},
+		{
+			Name:          "Title",
+			FullName:      "pb.Finding.Title",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `Title is the human-readable name.`,
+		},
+		{
+			Name:          "Severity",
+			FullName:      "pb.Finding.Severity",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `Severity is one of: Critical, High, Medium, Low.`,
+		},
+		{
+			Name:          "Domain",
+			FullName:      "pb.Finding.Domain",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `Domain is the rule category, e.g. "Data Privacy & Confidentiality".`,
+		},
+		{
+			Name:          "Remediation",
+			FullName:      "pb.Finding.Remediation",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `Remediation is the suggested fix text.`,
+		},
+		{
+			Name:          "Standards",
+			FullName:      "pb.Finding.Standards",
+			Type:          "[]string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `Standards lists applicable compliance references, e.g. "OWASP LLM01".`,
+		},
+		{
+			Name:          "TriggerType",
+			FullName:      "pb.Finding.TriggerType",
+			Display:       "Trigger Type",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `TriggerType is one of: static, score, meta, or combined.`,
+		},
+	},
+}
+
+var GetRulesRequest_MessageDescription = &api.MessageDescription{
+	Name:          "GetRulesRequest",
+	Display:       "Get Rules Request",
+	FullName:      "pb.GetRulesRequest",
+	Documentation: `GetRulesRequest allows optional domain or severity filtering.`,
+	Fields: []*api.FieldMeta{
+		{
+			Name:          "Domain",
+			FullName:      "pb.GetRulesRequest.Domain",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `Domain filters by rule domain; empty means all domains.`,
+		},
+		{
+			Name:          "Severity",
+			FullName:      "pb.GetRulesRequest.Severity",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `Severity filters by minimum severity; empty means all severities.`,
+		},
+	},
+}
+
+var GetRulesResponse_MessageDescription = &api.MessageDescription{
+	Name:          "GetRulesResponse",
+	Display:       "Get Rules Response",
+	FullName:      "pb.GetRulesResponse",
+	Documentation: `GetRulesResponse returns the full rule catalogue.`,
+	Fields: []*api.FieldMeta{
+		{
+			Name:       "Rules",
+			FullName:   "pb.GetRulesResponse.Rules",
+			Type:       "[]struct",
+			StructName: "pb.Finding",
+			SearchType: "flat_object",
+		},
+	},
+}
+
+var MatchRulesRequest_MessageDescription = &api.MessageDescription{
+	Name:     "MatchRulesRequest",
+	Display:  "Match Rules Request",
+	FullName: "pb.MatchRulesRequest",
+	Documentation: `MatchRulesRequest carries anonymised signals from the local scanner.
+No prompt text is included — only derived scores and metadata.`,
+	Fields: []*api.FieldMeta{
+		{
+			Name:          "Scores",
+			FullName:      "pb.MatchRulesRequest.Scores",
+			Type:          "[]struct",
+			StructName:    "pb.DimensionScore",
+			SearchType:    "flat_object",
+			Documentation: `Scores contains LLM-derived dimension scores (Pass 3 output).`,
+		},
+		{
+			Name:          "MetadataFlags",
+			FullName:      "pb.MatchRulesRequest.MetadataFlags",
+			Display:       "Metadata Flags",
+			Type:          "[]string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `MetadataFlags carries boolean YAML metadata, e.g. "is_user_facing",
+"domain:medical".`,
+		},
+		{
+			Name:          "StaticTriggers",
+			FullName:      "pb.MatchRulesRequest.StaticTriggers",
+			Display:       "Static Triggers",
+			Type:          "[]string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `StaticTriggers lists rule IDs or named patterns that fired locally during
+Pass 1 / Pass 2 (regex + AST), e.g. "MISSING_DELIMITER",
+"HARDCODED_SECRET".`,
+		},
+	},
+}
+
+var MatchRulesResponse_MessageDescription = &api.MessageDescription{
+	Name:          "MatchRulesResponse",
+	Display:       "Match Rules Response",
+	FullName:      "pb.MatchRulesResponse",
+	Documentation: `MatchRulesResponse contains all rules that fired for the given input.`,
+	Fields: []*api.FieldMeta{
+		{
+			Name:       "Findings",
+			FullName:   "pb.MatchRulesResponse.Findings",
+			Type:       "[]struct",
+			StructName: "pb.Finding",
+			SearchType: "flat_object",
+		},
+	},
+}
+
 var ServerStatus_MessageDescription = &api.MessageDescription{
 	Name:          "ServerStatus",
 	Display:       "Server Status",
@@ -194,6 +382,12 @@ var (
 	initMessageDescriptionOnce sync.Once
 	messageDescriptions        = map[string]*api.MessageDescription{
 		"google.protobuf.Empty":             Empty_MessageDescription,
+		"pb.DimensionScore":                 DimensionScore_MessageDescription,
+		"pb.Finding":                        Finding_MessageDescription,
+		"pb.GetRulesRequest":                GetRulesRequest_MessageDescription,
+		"pb.GetRulesResponse":               GetRulesResponse_MessageDescription,
+		"pb.MatchRulesRequest":              MatchRulesRequest_MessageDescription,
+		"pb.MatchRulesResponse":             MatchRulesResponse_MessageDescription,
 		"pb.ServerStatus":                   ServerStatus_MessageDescription,
 		"pb.ServerStatusResponse":           ServerStatusResponse_MessageDescription,
 		"pb.ServerStatusResponse.PodsEntry": ServerStatusResponse_PodsEntry_MessageDescription,
@@ -204,6 +398,12 @@ var (
 
 	messageAllocators = map[string]MessageAllocator{
 		"google.protobuf.Empty":             func() any { return new(emptypb.Empty) },
+		"pb.DimensionScore":                 func() any { return new(DimensionScore) },
+		"pb.Finding":                        func() any { return new(Finding) },
+		"pb.GetRulesRequest":                func() any { return new(GetRulesRequest) },
+		"pb.GetRulesResponse":               func() any { return new(GetRulesResponse) },
+		"pb.MatchRulesRequest":              func() any { return new(MatchRulesRequest) },
+		"pb.MatchRulesResponse":             func() any { return new(MatchRulesResponse) },
 		"pb.ServerStatus":                   func() any { return new(ServerStatus) },
 		"pb.ServerStatusResponse":           func() any { return new(ServerStatusResponse) },
 		"pb.ServerStatusResponse.PodsEntry": func() any { return make(map[string]string) },
@@ -213,8 +413,20 @@ var (
 	}
 )
 
+func (m *GetRulesRequest) Validate(ctx context.Context) error {
+	return api.ValidateRequest(ctx, m, GetRulesRequest_MessageDescription)
+}
+func (m *MatchRulesRequest) Validate(ctx context.Context) error {
+	return api.ValidateRequest(ctx, m, MatchRulesRequest_MessageDescription)
+}
 func (m *SubmitRequest) Validate(ctx context.Context) error {
 	return api.ValidateRequest(ctx, m, SubmitRequest_MessageDescription)
+}
+func (m *GetRulesResponse) GetMessageDescription() *api.MessageDescription {
+	return GetRulesResponse_MessageDescription
+}
+func (m *MatchRulesResponse) GetMessageDescription() *api.MessageDescription {
+	return MatchRulesResponse_MessageDescription
 }
 func (m *ServerStatusResponse) GetMessageDescription() *api.MessageDescription {
 	return ServerStatusResponse_MessageDescription

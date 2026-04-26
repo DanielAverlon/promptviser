@@ -20,7 +20,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Adviser_Submit_FullMethodName = "/pb.Adviser/Submit"
+	Adviser_Submit_FullMethodName     = "/pb.Adviser/Submit"
+	Adviser_MatchRules_FullMethodName = "/pb.Adviser/MatchRules"
+	Adviser_GetRules_FullMethodName   = "/pb.Adviser/GetRules"
 )
 
 // AdviserClient is the client API for Adviser service.
@@ -29,6 +31,13 @@ const (
 type AdviserClient interface {
 	// Submit data for analysis.
 	Submit(ctx context.Context, in *SubmitRequest, opts ...grpc.CallOption) (*SubmitResponse, error)
+	// MatchRules evaluates anonymized dimension scores and static triggers against
+	// the rules database and returns matching findings. Prompt text never leaves
+	// the client — only numeric scores and metadata flags are sent.
+	MatchRules(ctx context.Context, in *MatchRulesRequest, opts ...grpc.CallOption) (*MatchRulesResponse, error)
+	// GetRules returns all rules so the client can cache them locally for
+	// offline Pass 1 evaluation.
+	GetRules(ctx context.Context, in *GetRulesRequest, opts ...grpc.CallOption) (*GetRulesResponse, error)
 }
 
 type adviserClient struct {
@@ -49,12 +58,39 @@ func (c *adviserClient) Submit(ctx context.Context, in *SubmitRequest, opts ...g
 	return out, nil
 }
 
+func (c *adviserClient) MatchRules(ctx context.Context, in *MatchRulesRequest, opts ...grpc.CallOption) (*MatchRulesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MatchRulesResponse)
+	err := c.cc.Invoke(ctx, Adviser_MatchRules_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *adviserClient) GetRules(ctx context.Context, in *GetRulesRequest, opts ...grpc.CallOption) (*GetRulesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRulesResponse)
+	err := c.cc.Invoke(ctx, Adviser_GetRules_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AdviserServer is the server API for Adviser service.
 // All implementations should embed UnimplementedAdviserServer
 // for forward compatibility.
 type AdviserServer interface {
 	// Submit data for analysis.
 	Submit(context.Context, *SubmitRequest) (*SubmitResponse, error)
+	// MatchRules evaluates anonymized dimension scores and static triggers against
+	// the rules database and returns matching findings. Prompt text never leaves
+	// the client — only numeric scores and metadata flags are sent.
+	MatchRules(context.Context, *MatchRulesRequest) (*MatchRulesResponse, error)
+	// GetRules returns all rules so the client can cache them locally for
+	// offline Pass 1 evaluation.
+	GetRules(context.Context, *GetRulesRequest) (*GetRulesResponse, error)
 }
 
 // UnimplementedAdviserServer should be embedded to have
@@ -66,6 +102,12 @@ type UnimplementedAdviserServer struct{}
 
 func (UnimplementedAdviserServer) Submit(context.Context, *SubmitRequest) (*SubmitResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Submit not implemented")
+}
+func (UnimplementedAdviserServer) MatchRules(context.Context, *MatchRulesRequest) (*MatchRulesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method MatchRules not implemented")
+}
+func (UnimplementedAdviserServer) GetRules(context.Context, *GetRulesRequest) (*GetRulesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRules not implemented")
 }
 func (UnimplementedAdviserServer) testEmbeddedByValue() {}
 
@@ -105,6 +147,42 @@ func _Adviser_Submit_Handler(srv any, ctx context.Context, dec func(any) error, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Adviser_MatchRules_Handler(srv any, ctx context.Context, dec func(any) error, interceptor grpc.UnaryServerInterceptor) (any, error) {
+	in := new(MatchRulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdviserServer).MatchRules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Adviser_MatchRules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req any) (any, error) {
+		return srv.(AdviserServer).MatchRules(ctx, req.(*MatchRulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Adviser_GetRules_Handler(srv any, ctx context.Context, dec func(any) error, interceptor grpc.UnaryServerInterceptor) (any, error) {
+	in := new(GetRulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdviserServer).GetRules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Adviser_GetRules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req any) (any, error) {
+		return srv.(AdviserServer).GetRules(ctx, req.(*GetRulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Adviser_ServiceDesc is the grpc.ServiceDesc for Adviser service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -115,6 +193,14 @@ var Adviser_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Submit",
 			Handler:    _Adviser_Submit_Handler,
+		},
+		{
+			MethodName: "MatchRules",
+			Handler:    _Adviser_MatchRules_Handler,
+		},
+		{
+			MethodName: "GetRules",
+			Handler:    _Adviser_GetRules_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

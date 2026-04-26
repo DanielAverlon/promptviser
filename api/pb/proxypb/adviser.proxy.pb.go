@@ -85,3 +85,78 @@ func (s *postproxyAdviserClient) Submit(ctx context.Context, req *pb.SubmitReque
 	}
 	return &res, nil
 }
+
+// MatchRules evaluates anonymized dimension scores and static triggers against
+// the rules database and returns matching findings. Prompt text never leaves
+// the client — only numeric scores and metadata flags are sent.
+func (s *proxyAdviserServer) MatchRules(ctx context.Context, req *pb.MatchRulesRequest, opts ...grpc.CallOption) (*pb.MatchRulesResponse, error) {
+	// add correlation ID to outgoing RPC calls
+	ctx = correlation.WithMetaFromContext(ctx)
+	res, err := s.srv.MatchRules(ctx, req)
+	if err != nil {
+		return nil, httperror.NewFromPb(err)
+	}
+	return res, nil
+}
+
+// MatchRules evaluates anonymized dimension scores and static triggers against
+// the rules database and returns matching findings. Prompt text never leaves
+// the client — only numeric scores and metadata flags are sent.
+func (s *proxyAdviserClient) MatchRules(ctx context.Context, req *pb.MatchRulesRequest) (*pb.MatchRulesResponse, error) {
+	// add correlation ID to outgoing RPC calls
+	ctx = correlation.WithMetaFromContext(ctx)
+	res, err := s.remote.MatchRules(ctx, req, s.callOpts...)
+	if err != nil {
+		return nil, httperror.NewFromPb(err)
+	}
+	return res, nil
+}
+
+// MatchRules evaluates anonymized dimension scores and static triggers against
+// the rules database and returns matching findings. Prompt text never leaves
+// the client — only numeric scores and metadata flags are sent.
+func (s *postproxyAdviserClient) MatchRules(ctx context.Context, req *pb.MatchRulesRequest) (*pb.MatchRulesResponse, error) {
+	var res pb.MatchRulesResponse
+	path := pb.Adviser_MatchRules_FullMethodName
+	_, _, err := s.client.Post(ctx, path, req, &res)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+// GetRules returns all rules so the client can cache them locally for
+// offline Pass 1 evaluation.
+func (s *proxyAdviserServer) GetRules(ctx context.Context, req *pb.GetRulesRequest, opts ...grpc.CallOption) (*pb.GetRulesResponse, error) {
+	// add correlation ID to outgoing RPC calls
+	ctx = correlation.WithMetaFromContext(ctx)
+	res, err := s.srv.GetRules(ctx, req)
+	if err != nil {
+		return nil, httperror.NewFromPb(err)
+	}
+	return res, nil
+}
+
+// GetRules returns all rules so the client can cache them locally for
+// offline Pass 1 evaluation.
+func (s *proxyAdviserClient) GetRules(ctx context.Context, req *pb.GetRulesRequest) (*pb.GetRulesResponse, error) {
+	// add correlation ID to outgoing RPC calls
+	ctx = correlation.WithMetaFromContext(ctx)
+	res, err := s.remote.GetRules(ctx, req, s.callOpts...)
+	if err != nil {
+		return nil, httperror.NewFromPb(err)
+	}
+	return res, nil
+}
+
+// GetRules returns all rules so the client can cache them locally for
+// offline Pass 1 evaluation.
+func (s *postproxyAdviserClient) GetRules(ctx context.Context, req *pb.GetRulesRequest) (*pb.GetRulesResponse, error) {
+	var res pb.GetRulesResponse
+	path := pb.Adviser_GetRules_FullMethodName
+	_, _, err := s.client.Post(ctx, path, req, &res)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
