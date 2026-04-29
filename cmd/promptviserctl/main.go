@@ -20,6 +20,7 @@ type app struct {
 
 	Submit command.SubmitCmd `cmd:"" help:"Submit data for analysis"`
 	Rules  command.RulesCmd  `cmd:"" help:"Print remote server rules"`
+	Scan   command.ScanCmd   `cmd:"" help:"Scan prompts and return the findings"`
 }
 
 func main() {

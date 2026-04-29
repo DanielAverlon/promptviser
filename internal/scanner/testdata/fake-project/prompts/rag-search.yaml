@@ -1,0 +1,16 @@
+# rag-search.yaml
+# Expected findings: REL-002 (RAG without citation), REL-001 (no uncertainty clause)
+is_user_facing: false
+domain: general
+model_id: gpt-4o
+version: 1.0.0
+
+---
+You are a research assistant.
+
+context:
+  {{.RetrievedDocuments}}
+
+The user wants to know: {{.UserInput}}
+
+Answer based on the context above. Provide a definitive answer.
