@@ -52,15 +52,15 @@ func Scan(dir string) (*Result, error) {
 			return nil, err
 		}
 
-		// Pass 1 — regex patterns (no network, no LLM)
+		// Pass 1 — regex patterns
 		triggers := pass1.Check(content)
 		result.StaticTriggers = append(result.StaticTriggers, triggers...)
 
-		// Pass 2 — YAML/AST analysis (no network, no LLM)
+		// Pass 2 — YAML/AST analysis
 		flags := pass2.Analyze(content)
 		result.MetadataFlags = append(result.MetadataFlags, flags...)
 
-		// Pass 3 — LLM scoring (calls LLM API locally, no prompt text to server)
+		// Pass 3 — LLM scoring
 		scores, err := pass3.Score(content)
 		if err != nil {
 			return nil, err

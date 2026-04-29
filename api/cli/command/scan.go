@@ -11,22 +11,23 @@ type ScanCmd struct {
 }
 
 // Run the command
-func (a *ScanCmd) Run(c *cli.Cli) error {
+func (a *ScanCmd) Run(ctx *cli.Cli) error {
 	// 1. Run locally, no prompt text leaves the machine
 	result, err := scanner.Scan(a.Path)
 	if err != nil {
 		return err
 	}
 
-	// 2. Only scores + triggers go to the server
-	adviser, err := c.AdviserClient(true)
-	if err != nil {
-		return err
-	}
-	findings, err := adviser.MatchRules(c.Context(), result.ToMatchRulesRequest())
+	adviser, err := ctx.AdviserClient(true)
 	if err != nil {
 		return err
 	}
 
-	return c.Print(findings)
+	// 2. Only scores + triggers go to the server
+	findings, err := adviser.MatchRules(ctx.Context(), result.ToMatchRulesRequest())
+	if err != nil {
+		return err
+	}
+
+	return ctx.Print(findings)
 }
