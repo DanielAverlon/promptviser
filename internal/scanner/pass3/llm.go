@@ -2,8 +2,6 @@ package pass3
 
 import pb "github.com/effective-security/promptviser/api/pb"
 
-// TODO: change everything
-
 // Score calls the LLM API with the prompt content and returns dimension scores.
 // The prompt text is sent to the LLM (running locally or via a direct API call
 // the user configures) — it is NOT forwarded to the promptviser server.

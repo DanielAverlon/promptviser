@@ -4,13 +4,12 @@ is_user_facing: false
 domain: general
 model_id: gpt-4o
 version: 1.0.0
+prompt: |
+  You are a research assistant.
 
----
-You are a research assistant.
+  context:
+    {{.RetrievedDocuments}}
 
-context:
-  {{.RetrievedDocuments}}
+  The user wants to know: {{.UserInput}}
 
-The user wants to know: {{.UserInput}}
-
-Answer based on the context above. Provide a definitive answer.
+  Answer based on the context above. Provide a definitive answer.

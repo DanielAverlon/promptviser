@@ -31,7 +31,7 @@ var highRiskDomains = map[string]string{
 	"emergency":        "domain:emergency",
 }
 
-// irreversibleTools are tool names that SEC-003 considers high-agency.
+// irreversibleTools are tool names that are considered high-agency.
 var irreversibleTools = map[string]bool{
 	"db_write":     true,
 	"file_delete":  true,
@@ -44,7 +44,7 @@ var irreversibleTools = map[string]bool{
 // of metadata flags the server rules use for matching.
 func Analyze(content []byte) []string {
 	var meta promptMetadata
-	// Best-effort parse — ignore errors so non-YAML files are silently skipped.
+
 	_ = yaml.Unmarshal(content, &meta)
 
 	var flags []string
@@ -59,7 +59,7 @@ func Analyze(content []byte) []string {
 		flags = append(flags, flag)
 	}
 
-	// ACC-002: missing model_id
+	// ACC-002: missing model_id means no traceability metadata
 	if meta.ModelID == "" {
 		flags = append(flags, "missing_model_id")
 	}

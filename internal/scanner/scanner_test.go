@@ -38,3 +38,15 @@ func Test_collectPromptFiles(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, files)
 }
+
+func Test_Scan(t *testing.T) {
+	dir := "./testdata/fake-project"
+	result, err := Scan(dir)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// Check that we got some triggers and scores
+	assert.NotEmpty(t, result.StaticTriggers)
+	assert.NotEmpty(t, result.MetadataFlags)
+	assert.NotEmpty(t, result.Scores)
+}

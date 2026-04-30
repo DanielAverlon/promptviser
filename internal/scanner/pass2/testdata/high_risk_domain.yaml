@@ -1,0 +1,5 @@
+domain: medical
+model_id: gpt-4o
+prompt: |
+  You are a helpful medical assistant.
+  Answer the following patient question.

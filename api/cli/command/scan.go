@@ -18,16 +18,17 @@ func (a *ScanCmd) Run(ctx *cli.Cli) error {
 		return err
 	}
 
-	adviser, err := ctx.AdviserClient(true)
+	// TODO: add back adviser and then match the rules
+	_, err = ctx.AdviserClient(true)
 	if err != nil {
 		return err
 	}
 
 	// 2. Only scores + triggers go to the server
-	findings, err := adviser.MatchRules(ctx.Context(), result.ToMatchRulesRequest())
-	if err != nil {
-		return err
-	}
+	// findings, err := adviser.MatchRules(ctx.Context(), result.ToMatchRulesRequest())
+	// if err != nil {
+	// 	return err
+	// }
 
-	return ctx.Print(findings)
+	return ctx.Print(result)
 }
