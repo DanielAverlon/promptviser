@@ -1,0 +1,19 @@
+# patient-intake.yaml
+# Expected findings: PRIV-001 (PII variable), SEC-001 (missing delimiter),
+#                   ACC-001 (user-facing without AI disclosure)
+is_user_facing: true
+domain: healthcare
+model_id: gpt-4o
+version: 1.0.0
+prompt: |
+  You are a helpful medical assistant.
+
+  Patient information:
+  - Name: {{.Name}}
+  - SSN: {{.SSN}}
+  - Date of Birth: {{.DOB}}
+  - Medical Record: {{.MedicalRecord}}
+
+  The patient has asked: {{.UserInput}}
+
+  Answer their question based on their medical record.

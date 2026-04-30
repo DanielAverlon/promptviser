@@ -1,0 +1,14 @@
+# hiring-bot.yaml
+# Expected findings: ACC-003 (bias risk, hiring domain), REL-003 (high consequence)
+is_user_facing: true
+domain: hiring
+model_id: gpt-4o
+version: 1.0.0
+prompt: |
+  You are a hiring assistant that helps evaluate job candidates.
+
+  Candidate profile:
+  {{.CandidateProfile}}
+
+  Evaluate this candidate and provide a hiring recommendation.
+  Consider all available information to make the best decision.

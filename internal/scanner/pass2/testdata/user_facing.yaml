@@ -1,0 +1,5 @@
+is_user_facing: true
+model_id: gpt-4o
+prompt: |
+  You are a helpful assistant.
+  User says: {{.UserInput}}

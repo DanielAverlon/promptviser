@@ -1,0 +1,20 @@
+# agent-executor.yaml
+# Expected findings: SEC-003 (excessive tool agency), REL-006 (no termination condition),
+#                   ACC-004 (consequential decision, no audit trail)
+is_user_facing: false
+domain: general
+model_id: gpt-4o
+version: 1.0.0
+tools:
+  - web_search
+  - db_write
+  - file_delete
+  - send_email
+  - execute_code
+prompt: |
+  You are an autonomous agent. Complete the user's task using the available tools.
+
+  Task: {{.UserTask}}
+
+  Keep trying until the task is complete. Use whatever tools are necessary.
+  Write results directly to the database when finished.
