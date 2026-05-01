@@ -4,6 +4,7 @@ import (
 	"github.com/effective-security/porto/gserver"
 	appinit "github.com/effective-security/porto/pkg/appinit/config"
 	"github.com/effective-security/promptviser/api/client"
+	"github.com/effective-security/promptviser/internal/llm"
 	"github.com/effective-security/xlog"
 )
 
@@ -50,6 +51,9 @@ type Configuration struct {
 
 	// Tasks specifies array of tasks
 	Tasks []Task `json:"tasks" yaml:"tasks"`
+
+	// LLM specifies the configuration for the LLM provider used
+	LLM llm.LLMConfig `json:"llm" yaml:"llm"`
 }
 
 // Task specifies configuration of a single task.
