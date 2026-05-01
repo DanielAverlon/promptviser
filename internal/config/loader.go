@@ -27,10 +27,12 @@ func DefaultFactory() (*configloader.Factory, error) {
 	}
 
 	cwd, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+	home, _ := os.UserHomeDir()
 	// try the list of allowed locations to find the config file
 	searchDirs := []string{
 		cwd,
 		filepath.Dir(cwd) + "/etc/dev", // $PWD/etc/dev for running locally on dev machine
+		filepath.Join(home, ".config", "promptviser"), // user-local config
 		"/opt/promptviser/etc/prod",
 		"/opt/promptviser/etc/stage",
 		"/opt/promptviser/etc/dev", // for CI test or stage the etc/dev must be after etc/prod

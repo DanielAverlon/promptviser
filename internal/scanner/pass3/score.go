@@ -1,8 +1,13 @@
 package pass3
 
-import pb "github.com/effective-security/promptviser/api/pb"
+import (
+	"context"
 
-// Score calls the LLM API with the prompt content and returns dimension scores.
+	pb "github.com/effective-security/promptviser/api/pb"
+	"github.com/effective-security/promptviser/internal/llm"
+)
+
+// Scores calls the LLM API with the prompt content and returns dimension scores.
 // The prompt text is sent to the LLM (running locally or via a direct API call
 // the user configures) — it is NOT forwarded to the promptviser server.
 //
@@ -14,13 +19,6 @@ import pb "github.com/effective-security/promptviser/api/pb"
 //
 // For now this returns a neutral score of 0.5 for every dimension so the
 // pipeline is runnable end-to-end before the LLM integration is built.
-func Score(_ []byte) ([]*pb.DimensionScore, error) {
-	return []*pb.DimensionScore{
-		{Dimension: "pii_exposure", Score: 0.5},
-		{Dimension: "output_consequence", Score: 0.5},
-		{Dimension: "human_oversight", Score: 0.5},
-		{Dimension: "data_persistence", Score: 0.5},
-		{Dimension: "refusal_instructions", Score: 0.5},
-		{Dimension: "bias_risk", Score: 0.5},
-	}, nil
+func Score(ctx context.Context, content []byte, provider llm.Provider) ([]*pb.DimensionScore, error) {
+	return provider.Score(ctx, content)
 }

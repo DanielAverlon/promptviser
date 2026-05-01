@@ -1,8 +1,10 @@
 package scanner
 
 import (
+	"context"
 	"testing"
 
+	"github.com/effective-security/promptviser/internal/llm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,8 +42,14 @@ func Test_collectPromptFiles(t *testing.T) {
 }
 
 func Test_Scan(t *testing.T) {
+	ctx := context.Background()
+	provider, err := llm.New(llm.LLMConfig{
+		Provider: "stub",
+	})
+	require.NoError(t, err)
+
 	dir := "./testdata/fake-project"
-	result, err := Scan(dir)
+	result, err := Scan(ctx, dir, provider)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 

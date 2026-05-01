@@ -16,3 +16,6 @@ client:
     key: /tmp/promptviser/certs/promptviser_client.key
     trusted_ca: /tmp/promptviser/certs/trusty_root_ca.pem
   dial_timeout: 60s
+
+llm:
+  provider: stub

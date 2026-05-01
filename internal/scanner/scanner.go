@@ -1,11 +1,13 @@
 package scanner
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 
 	pb "github.com/effective-security/promptviser/api/pb"
+	"github.com/effective-security/promptviser/internal/llm"
 	"github.com/effective-security/promptviser/internal/scanner/pass1"
 	"github.com/effective-security/promptviser/internal/scanner/pass2"
 	"github.com/effective-security/promptviser/internal/scanner/pass3"
@@ -36,9 +38,17 @@ func (r *Result) ToMatchRulesRequest() *pb.MatchRulesRequest {
 	}
 }
 
+// TODO: add a ScanConfig to configure what triggers get ignored
+// type ScanConfig struct {
+//     Extensions      []string            // default: .yaml,.yml,.txt,.md
+//     ExcludeRules    map[string][]string // filename → rule IDs to suppress
+// }
+// TODO: reasoning along dimension scores
+// TODO: later add compliance to other yaml config frameworks
+
 // Scan walks dir, runs all three passes over every prompt file found, and
 // returns the combined Result. Prompt text never leaves this function.
-func Scan(dir string) (*Result, error) {
+func Scan(ctx context.Context, dir string, provider llm.Provider) (*Result, error) {
 	files, err := collectPromptFiles(dir)
 	if err != nil {
 		return nil, err
@@ -61,7 +71,7 @@ func Scan(dir string) (*Result, error) {
 		result.MetadataFlags = append(result.MetadataFlags, flags...)
 
 		// Pass 3 — LLM scoring
-		scores, err := pass3.Score(content)
+		scores, err := pass3.Score(ctx, content, provider)
 		if err != nil {
 			return nil, err
 		}
