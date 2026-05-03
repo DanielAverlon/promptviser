@@ -1,0 +1,187 @@
+[
+  {
+    "FileName": "testdata/fake-project/prompts/crisis-support.yaml",
+    "StaticTriggers": [
+      "MISSING_PERSONA",
+      "NEGATIVE_ONLY_INSTRUCTION",
+      "MISSING_DELIMITER",
+      "MISSING_CRISIS_ESCALATION"
+    ],
+    "MetadataFlags": [
+      "is_user_facing",
+      "domain:mental_health"
+    ],
+    "Scores": [
+      {
+        "Dimension": "bias_risk",
+        "Score": 0.3
+      },
+      {
+        "Dimension": "pii_exposure",
+        "Score": 0.1
+      },
+      {
+        "Dimension": "output_consequence",
+        "Score": 0.9
+      },
+      {
+        "Dimension": "human_oversight",
+        "Score": 0.7
+      },
+      {
+        "Dimension": "data_persistence",
+        "Score": 0.1
+      },
+      {
+        "Dimension": "refusal_instructions",
+        "Score": 0.9
+      }
+    ]
+  },
+  {
+    "FileName": "testdata/fake-project/prompts/more/agent-executor.yaml",
+    "StaticTriggers": [
+      "EXCESSIVE_TOOL_AGENCY",
+      "AGENTIC_LOOP_NO_TERMINATION",
+      "MISSING_PERSONA"
+    ],
+    "MetadataFlags": [
+      "no_timeout",
+      "loop_or_batch_context"
+    ],
+    "Scores": [
+      {
+        "Dimension": "pii_exposure",
+        "Score": 0.4
+      },
+      {
+        "Dimension": "output_consequence",
+        "Score": 0.9
+      },
+      {
+        "Dimension": "human_oversight",
+        "Score": 0.9
+      },
+      {
+        "Dimension": "data_persistence",
+        "Score": 0.8
+      },
+      {
+        "Dimension": "refusal_instructions",
+        "Score": 0.9
+      },
+      {
+        "Dimension": "bias_risk",
+        "Score": 0.2
+      }
+    ]
+  },
+  {
+    "FileName": "testdata/fake-project/prompts/more/hiring-bot.yaml",
+    "StaticTriggers": [
+      "MISSING_PERSONA"
+    ],
+    "MetadataFlags": [
+      "is_user_facing",
+      "domain:hiring"
+    ],
+    "Scores": [
+      {
+        "Dimension": "bias_risk",
+        "Score": 0.8
+      },
+      {
+        "Dimension": "pii_exposure",
+        "Score": 0.4
+      },
+      {
+        "Dimension": "output_consequence",
+        "Score": 0.8
+      },
+      {
+        "Dimension": "human_oversight",
+        "Score": 0.8
+      },
+      {
+        "Dimension": "data_persistence",
+        "Score": 0.3
+      },
+      {
+        "Dimension": "refusal_instructions",
+        "Score": 0.1
+      }
+    ]
+  },
+  {
+    "FileName": "testdata/fake-project/prompts/patient-intake.yaml",
+    "StaticTriggers": [
+      "PII_VARIABLE",
+      "MISSING_PERSONA",
+      "MISSING_DELIMITER"
+    ],
+    "MetadataFlags": [
+      "is_user_facing",
+      "domain:medical"
+    ],
+    "Scores": [
+      {
+        "Dimension": "data_persistence",
+        "Score": 0.7
+      },
+      {
+        "Dimension": "refusal_instructions",
+        "Score": 0.9
+      },
+      {
+        "Dimension": "bias_risk",
+        "Score": 0.4
+      },
+      {
+        "Dimension": "pii_exposure",
+        "Score": 0.95
+      },
+      {
+        "Dimension": "output_consequence",
+        "Score": 0.8
+      },
+      {
+        "Dimension": "human_oversight",
+        "Score": 0.6
+      }
+    ]
+  },
+  {
+    "FileName": "testdata/fake-project/prompts/rag-search.yaml",
+    "StaticTriggers": [
+      "MISSING_DELIMITER",
+      "MISSING_PERSONA"
+    ],
+    "MetadataFlags": null,
+    "Scores": [
+      {
+        "Dimension": "pii_exposure",
+        "Score": 0.1
+      },
+      {
+        "Dimension": "output_consequence",
+        "Score": 0.2
+      },
+      {
+        "Dimension": "human_oversight",
+        "Score": 0.4
+      },
+      {
+        "Dimension": "data_persistence",
+        "Score": 0.1
+      },
+      {
+        "Dimension": "refusal_instructions",
+        "Score": 0.3
+      },
+      {
+        "Dimension": "bias_risk",
+        "Score": 0.2
+      }
+    ]
+  }
+]

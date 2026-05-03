@@ -54,18 +54,22 @@ message DimensionScore {
   float Score = 2 [ json_name = "Score" ];
 }
 
+message FileScanResult {
+  // FileName is the relative path for reference only
+  string FileName = 1 [ json_name = "FileName" ];
+  // StaticTriggers lists rule IDs or named patterns that fired locally with regex
+  repeated string StaticTriggers = 2 [ json_name = "StaticTriggers" ];
+  // MetadataFlags carries boolean YAML metadata
+  repeated string MetadataFlags = 3 [ json_name = "MetadataFlags" ];
+  // Scores contains LLM-derived dimension scores
+  repeated DimensionScore Scores = 4 [ json_name = "Scores" ];
+}
+
 // MatchRulesRequest carries anonymised signals from the local scanner.
 // No prompt text is included — only derived scores and metadata.
 message MatchRulesRequest {
-  // Scores contains LLM-derived dimension scores (Pass 3 output).
-  repeated DimensionScore Scores = 1 [ json_name = "Scores" ];
-  // MetadataFlags carries boolean YAML metadata, e.g. "is_user_facing",
-  // "domain:medical".
-  repeated string MetadataFlags = 2 [ json_name = "MetadataFlags" ];
-  // StaticTriggers lists rule IDs or named patterns that fired locally during
-  // Pass 1 / Pass 2 (regex + AST), e.g. "MISSING_DELIMITER",
-  // "HARDCODED_SECRET".
-  repeated string StaticTriggers = 3 [ json_name = "StaticTriggers" ];
+  // FileResults contains the aggregated results for all scanned files.
+  repeated FileScanResult FileResults = 1 [ json_name = "FileResults" ];
 }
 
 // Finding is a single matched rule with remediation guidance.
