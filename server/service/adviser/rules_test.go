@@ -84,21 +84,122 @@ func TestMatchRules_HighConsequenceLowOversight_ReturnsREL003(t *testing.T) {
 		GetAllRules(gomock.Any(), "", "").
 		Return(sampleRules, nil)
 
-	req := &pb.MatchRulesRequest{}
+	req := &pb.MatchRulesRequest{
+		FileResults: []*pb.FileScanResult{
+			{
+				FileName: "prompts/agent.yaml",
+				Scores: []*pb.DimensionScore{
+					{Dimension: "output_consequence", Score: 0.9},
+					{Dimension: "human_oversight", Score: 0.1},
+				},
+			},
+		},
+	}
 
 	resp, err := svc.MatchRules(context.Background(), req)
 	require.NoError(t, err)
+	require.Len(t, resp.Findings, 1)
+	require.Equal(t, "prompts/agent.yaml", resp.Findings[0].FileName)
 
-	ruleIDs := findingIDs(resp.Findings)
-	_ = ruleIDs
+	ruleIDs := ruleIDsForFile(resp.Findings, "prompts/agent.yaml")
+	require.Contains(t, ruleIDs, "REL-003")
+}
+
+func TestMatchRules_StaticTrigger_ReturnsSEC001(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	mockDB.EXPECT().
+		GetAllRules(gomock.Any(), "", "").
+		Return(sampleRules, nil)
+
+	req := &pb.MatchRulesRequest{
+		FileResults: []*pb.FileScanResult{
+			{
+				FileName:       "prompts/chat.yaml",
+				StaticTriggers: []string{"MISSING_DELIMITER"},
+			},
+		},
+	}
+
+	resp, err := svc.MatchRules(context.Background(), req)
+	require.NoError(t, err)
+	require.Len(t, resp.Findings, 1)
+	require.Equal(t, "prompts/chat.yaml", resp.Findings[0].FileName)
+
+	ruleIDs := ruleIDsForFile(resp.Findings, "prompts/chat.yaml")
+	require.Contains(t, ruleIDs, "SEC-001")
+	require.NotContains(t, ruleIDs, "REL-003") // score thresholds not met
+}
+
+func TestMatchRules_CombinedRule_RequiresBothStaticAndMeta(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	mockDB.EXPECT().
+		GetAllRules(gomock.Any(), "", "").
+		Return(sampleRules, nil)
+
+	req := &pb.MatchRulesRequest{
+		FileResults: []*pb.FileScanResult{
+			{
+				FileName:       "prompts/ui.yaml",
+				StaticTriggers: []string{"MISSING_AI_DISCLOSURE"},
+				MetadataFlags:  []string{"is_user_facing"},
+			},
+		},
+	}
+
+	resp, err := svc.MatchRules(context.Background(), req)
+	require.NoError(t, err)
+	require.Len(t, resp.Findings, 1)
+
+	ruleIDs := ruleIDsForFile(resp.Findings, "prompts/ui.yaml")
+	require.Contains(t, ruleIDs, "ACC-001")
+}
+
+func TestMatchRules_CombinedRule_MissingMetaFlag_NoMatch(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	mockDB.EXPECT().
+		GetAllRules(gomock.Any(), "", "").
+		Return(sampleRules, nil)
+
+	req := &pb.MatchRulesRequest{
+		FileResults: []*pb.FileScanResult{
+			{
+				FileName:       "prompts/internal.yaml",
+				StaticTriggers: []string{"MISSING_AI_DISCLOSURE"},
+				// is_user_facing flag absent — ACC-001 should not fire
+			},
+		},
+	}
+
+	resp, err := svc.MatchRules(context.Background(), req)
+	require.NoError(t, err)
+	// No rules matched — Findings slice should be empty (files with no hits are omitted)
+	require.Empty(t, resp.Findings)
+}
+
+func TestMatchRules_NilRequest_ReturnsError(t *testing.T) {
+	svc, _ := newService(t)
+
+	_, err := svc.MatchRules(context.Background(), nil)
+	require.Error(t, err)
 }
 
 // ----- helpers ----------------------------------------------------------------
 
-func findingIDs(findings []*pb.Finding) []string {
-	ids := make([]string, 0, len(findings))
-	for _, f := range findings {
-		ids = append(ids, f.RuleID)
+// ruleIDsForFile extracts all matched rule IDs for the first PromptFindings
+// entry whose FileName matches. Panics if not found — tests should call
+// require.Len(t, resp.Findings, ...) first if needed.
+func ruleIDsForFile(findings []*pb.PromptFindings, fileName string) []string {
+	for _, pf := range findings {
+		if pf.FileName == fileName {
+			ids := make([]string, 0, len(pf.Findings))
+			for _, f := range pf.Findings {
+				ids = append(ids, f.RuleID)
+			}
+			return ids
+		}
 	}
-	return ids
+	return nil
 }

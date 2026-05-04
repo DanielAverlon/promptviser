@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -42,9 +43,9 @@ func New(cfg LLMConfig) (Provider, error) {
 }
 
 // metaPrompt is the system prompt used by all providers to score a prompt file.
-// TODO: replace with a separate .md prompt file
-const metaPrompt = `You are a prompt safety auditor. Score the following prompt on each dimension from 0.0 (low risk) to 1.0 (high risk).
-Reply ONLY with a JSON object like: {"pii_exposure":0.2,"output_consequence":0.1,"human_oversight":0.8,"data_persistence":0.0,"refusal_instructions":0.3,"bias_risk":0.1}`
+//
+//go:embed score_prompt.md
+var metaPrompt string
 
 // parseScores extracts dimension scores from a raw LLM response string.
 // It strips markdown code fences if the model wraps its output in them.

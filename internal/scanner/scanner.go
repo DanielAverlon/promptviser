@@ -64,8 +64,8 @@ func Scan(ctx context.Context, dir string, provider llm.Provider) ([]*pb.FileSca
 		flags := pass2.Analyze(content)
 		fileResult.MetadataFlags = append(fileResult.MetadataFlags, flags...)
 
-		// Pass 3 — LLM scoring
-		scores, err := pass3.Score(ctx, content, provider)
+		// Pass 3 — LLM scoring (receives pass1/pass2 signals as context)
+		scores, err := pass3.Score(ctx, content, fileResult.StaticTriggers, fileResult.MetadataFlags, provider)
 		if err != nil {
 			return nil, err
 		}

@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/effective-security/promptviser/internal/adviserdb"
 	"github.com/effective-security/promptviser/internal/llm"
+	advisersvc "github.com/effective-security/promptviser/server/service/adviser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -60,6 +62,83 @@ func Test_Scan(t *testing.T) {
 		assert.NotNil(t, result.StaticTriggers)
 		assert.NotNil(t, result.Scores)
 	}
+}
+
+func Test_ScanAndMatchRules(t *testing.T) {
+	// A representative subset of rules — static-only and meta-only rules that
+	// fire deterministically regardless of LLM scores.
+	rules := []*adviserdb.Rule{
+		{
+			RuleID:         "SEC-001",
+			Domain:         "Security & Injection Resistance",
+			Name:           "User input not structurally delimited",
+			Severity:       "High",
+			TriggerType:    "static",
+			StaticTriggers: []string{"MISSING_DELIMITER"},
+		},
+		{
+			RuleID:         "SEC-003",
+			Domain:         "Security & Injection Resistance",
+			Name:           "Excessive tool agency without confirmation gate",
+			Severity:       "High",
+			TriggerType:    "combined",
+			StaticTriggers: []string{"EXCESSIVE_TOOL_AGENCY"},
+		},
+		{
+			RuleID:        "SEC-006",
+			Domain:        "Security & Injection Resistance",
+			Name:          "No rate limiting or abuse signal in agent prompt",
+			Severity:      "Low",
+			TriggerType:   "meta",
+			MetadataFlags: []string{"no_timeout", "loop_or_batch_context"},
+		},
+	}
+
+	ctx := context.Background()
+	provider, err := llm.New(llm.LLMConfig{Provider: "stub"})
+	require.NoError(t, err)
+
+	fileResults, err := Scan(ctx, "./testdata/fake-project", provider)
+	require.NoError(t, err)
+	require.NotEmpty(t, fileResults)
+
+	// Match each file result against the rule set.
+	type fileFindings struct {
+		fileName string
+		ruleIDs  []string
+	}
+	var got []fileFindings
+	for _, fr := range fileResults {
+		pf := advisersvc.FindingsForFile(fr, rules)
+		if len(pf.Findings) == 0 {
+			continue
+		}
+		ids := make([]string, 0, len(pf.Findings))
+		for _, f := range pf.Findings {
+			ids = append(ids, f.RuleID)
+		}
+		got = append(got, fileFindings{fileName: pf.FileName, ruleIDs: ids})
+	}
+
+	// Every file containing {{.UserInput}} should trigger SEC-001.
+	findRuleIDs := func(fileName string) []string {
+		for _, ff := range got {
+			if ff.fileName == fileName {
+				return ff.ruleIDs
+			}
+		}
+		return nil
+	}
+
+	assert.Contains(t, findRuleIDs("testdata/fake-project/prompts/patient-intake.yaml"), "SEC-001")
+	assert.Contains(t, findRuleIDs("testdata/fake-project/prompts/crisis-support.yaml"), "SEC-001")
+
+	// agent-executor has irreversible tools → SEC-003 and SEC-006.
+	// Note: it uses {{.UserTask}} not {{.UserInput}}, so SEC-001 does not fire.
+	agentIDs := findRuleIDs("testdata/fake-project/prompts/more/agent-executor.yaml")
+	assert.NotContains(t, agentIDs, "SEC-001")
+	assert.Contains(t, agentIDs, "SEC-003")
+	assert.Contains(t, agentIDs, "SEC-006")
 }
 
 func Test_ScanReal(t *testing.T) {

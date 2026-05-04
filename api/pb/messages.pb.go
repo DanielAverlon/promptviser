@@ -228,8 +228,34 @@ var MatchRulesResponse_MessageDescription = &api.MessageDescription{
 			Name:       "Findings",
 			FullName:   "pb.MatchRulesResponse.Findings",
 			Type:       "[]struct",
-			StructName: "pb.Finding",
+			StructName: "pb.PromptFindings",
 			SearchType: "flat_object",
+		},
+	},
+}
+
+var PromptFindings_MessageDescription = &api.MessageDescription{
+	Name:          "PromptFindings",
+	Display:       "Prompt Findings",
+	FullName:      "pb.PromptFindings",
+	Documentation: `PromptFindings is the response for a single file, containing all matched rules.`,
+	Fields: []*api.FieldMeta{
+		{
+			Name:          "FileName",
+			FullName:      "pb.PromptFindings.FileName",
+			Display:       "File Name",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `FileName is the relative path for reference only`,
+		},
+		{
+			Name:          "Findings",
+			FullName:      "pb.PromptFindings.Findings",
+			Type:          "[]struct",
+			StructName:    "pb.Finding",
+			SearchType:    "flat_object",
+			Documentation: `Findings lists all matched rules with remediation guidance.`,
 		},
 	},
 }
@@ -412,6 +438,7 @@ var (
 		"pb.GetRulesResponse":               GetRulesResponse_MessageDescription,
 		"pb.MatchRulesRequest":              MatchRulesRequest_MessageDescription,
 		"pb.MatchRulesResponse":             MatchRulesResponse_MessageDescription,
+		"pb.PromptFindings":                 PromptFindings_MessageDescription,
 		"pb.ServerStatus":                   ServerStatus_MessageDescription,
 		"pb.ServerStatusResponse":           ServerStatusResponse_MessageDescription,
 		"pb.ServerStatusResponse.PodsEntry": ServerStatusResponse_PodsEntry_MessageDescription,
@@ -429,6 +456,7 @@ var (
 		"pb.GetRulesResponse":               func() any { return new(GetRulesResponse) },
 		"pb.MatchRulesRequest":              func() any { return new(MatchRulesRequest) },
 		"pb.MatchRulesResponse":             func() any { return new(MatchRulesResponse) },
+		"pb.PromptFindings":                 func() any { return new(PromptFindings) },
 		"pb.ServerStatus":                   func() any { return new(ServerStatus) },
 		"pb.ServerStatusResponse":           func() any { return new(ServerStatusResponse) },
 		"pb.ServerStatusResponse.PodsEntry": func() any { return make(map[string]string) },

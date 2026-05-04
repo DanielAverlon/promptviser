@@ -72,6 +72,14 @@ message MatchRulesRequest {
   repeated FileScanResult FileResults = 1 [ json_name = "FileResults" ];
 }
 
+// PromptFindings is the response for a single file, containing all matched rules.
+message PromptFindings {
+  // FileName is the relative path for reference only
+  string FileName = 1 [ json_name = "FileName" ];
+  // Findings lists all matched rules with remediation guidance.
+  repeated Finding Findings = 2 [ json_name = "Findings" ];
+}
+
 // Finding is a single matched rule with remediation guidance.
 message Finding {
   // RuleID is the stable identifier, e.g. "PRIV-001".
@@ -92,7 +100,7 @@ message Finding {
 
 // MatchRulesResponse contains all rules that fired for the given input.
 message MatchRulesResponse {
-  repeated Finding Findings = 1 [ json_name = "Findings" ];
+  repeated PromptFindings Findings = 1 [ json_name = "PromptFindings" ];
 }
 
 // GetRulesRequest allows optional domain or severity filtering.

@@ -80,6 +80,16 @@ func (msg *MatchRulesRequest) UnmarshalJSON(b []byte) error {
 }
 
 // MarshalJSON implements json.Marshaler
+func (msg *PromptFindings) MarshalJSON() ([]byte, error) {
+	return JsonMarshalOptions.Marshal(msg)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (msg *PromptFindings) UnmarshalJSON(b []byte) error {
+	return JsonUnmarshalOptions.Unmarshal(b, msg)
+}
+
+// MarshalJSON implements json.Marshaler
 func (msg *Finding) MarshalJSON() ([]byte, error) {
 	return JsonMarshalOptions.Marshal(msg)
 }

@@ -288,6 +288,61 @@ func (x *MatchRulesRequest) GetFileResults() []*FileScanResult {
 	return nil
 }
 
+// PromptFindings is the response for a single file, containing all matched rules.
+type PromptFindings struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// FileName is the relative path for reference only
+	FileName string `protobuf:"bytes,1,opt,name=FileName,proto3" json:"FileName,omitempty"`
+	// Findings lists all matched rules with remediation guidance.
+	Findings      []*Finding `protobuf:"bytes,2,rep,name=Findings,proto3" json:"Findings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PromptFindings) Reset() {
+	*x = PromptFindings{}
+	mi := &file_adviser_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PromptFindings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PromptFindings) ProtoMessage() {}
+
+func (x *PromptFindings) ProtoReflect() protoreflect.Message {
+	mi := &file_adviser_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PromptFindings.ProtoReflect.Descriptor instead.
+func (*PromptFindings) Descriptor() ([]byte, []int) {
+	return file_adviser_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *PromptFindings) GetFileName() string {
+	if x != nil {
+		return x.FileName
+	}
+	return ""
+}
+
+func (x *PromptFindings) GetFindings() []*Finding {
+	if x != nil {
+		return x.Findings
+	}
+	return nil
+}
+
 // Finding is a single matched rule with remediation guidance.
 type Finding struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -311,7 +366,7 @@ type Finding struct {
 
 func (x *Finding) Reset() {
 	*x = Finding{}
-	mi := &file_adviser_proto_msgTypes[5]
+	mi := &file_adviser_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -323,7 +378,7 @@ func (x *Finding) String() string {
 func (*Finding) ProtoMessage() {}
 
 func (x *Finding) ProtoReflect() protoreflect.Message {
-	mi := &file_adviser_proto_msgTypes[5]
+	mi := &file_adviser_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -336,7 +391,7 @@ func (x *Finding) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Finding.ProtoReflect.Descriptor instead.
 func (*Finding) Descriptor() ([]byte, []int) {
-	return file_adviser_proto_rawDescGZIP(), []int{5}
+	return file_adviser_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Finding) GetRuleID() string {
@@ -391,14 +446,14 @@ func (x *Finding) GetTriggerType() string {
 // MatchRulesResponse contains all rules that fired for the given input.
 type MatchRulesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Findings      []*Finding             `protobuf:"bytes,1,rep,name=Findings,proto3" json:"Findings,omitempty"`
+	Findings      []*PromptFindings      `protobuf:"bytes,1,rep,name=Findings,json=PromptFindings,proto3" json:"Findings,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MatchRulesResponse) Reset() {
 	*x = MatchRulesResponse{}
-	mi := &file_adviser_proto_msgTypes[6]
+	mi := &file_adviser_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -410,7 +465,7 @@ func (x *MatchRulesResponse) String() string {
 func (*MatchRulesResponse) ProtoMessage() {}
 
 func (x *MatchRulesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_adviser_proto_msgTypes[6]
+	mi := &file_adviser_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -423,10 +478,10 @@ func (x *MatchRulesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MatchRulesResponse.ProtoReflect.Descriptor instead.
 func (*MatchRulesResponse) Descriptor() ([]byte, []int) {
-	return file_adviser_proto_rawDescGZIP(), []int{6}
+	return file_adviser_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *MatchRulesResponse) GetFindings() []*Finding {
+func (x *MatchRulesResponse) GetFindings() []*PromptFindings {
 	if x != nil {
 		return x.Findings
 	}
@@ -446,7 +501,7 @@ type GetRulesRequest struct {
 
 func (x *GetRulesRequest) Reset() {
 	*x = GetRulesRequest{}
-	mi := &file_adviser_proto_msgTypes[7]
+	mi := &file_adviser_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -458,7 +513,7 @@ func (x *GetRulesRequest) String() string {
 func (*GetRulesRequest) ProtoMessage() {}
 
 func (x *GetRulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_adviser_proto_msgTypes[7]
+	mi := &file_adviser_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -471,7 +526,7 @@ func (x *GetRulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRulesRequest.ProtoReflect.Descriptor instead.
 func (*GetRulesRequest) Descriptor() ([]byte, []int) {
-	return file_adviser_proto_rawDescGZIP(), []int{7}
+	return file_adviser_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetRulesRequest) GetDomain() string {
@@ -498,7 +553,7 @@ type GetRulesResponse struct {
 
 func (x *GetRulesResponse) Reset() {
 	*x = GetRulesResponse{}
-	mi := &file_adviser_proto_msgTypes[8]
+	mi := &file_adviser_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -510,7 +565,7 @@ func (x *GetRulesResponse) String() string {
 func (*GetRulesResponse) ProtoMessage() {}
 
 func (x *GetRulesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_adviser_proto_msgTypes[8]
+	mi := &file_adviser_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -523,7 +578,7 @@ func (x *GetRulesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRulesResponse.ProtoReflect.Descriptor instead.
 func (*GetRulesResponse) Descriptor() ([]byte, []int) {
-	return file_adviser_proto_rawDescGZIP(), []int{8}
+	return file_adviser_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetRulesResponse) GetRules() []*Finding {
@@ -551,7 +606,10 @@ const file_adviser_proto_rawDesc = "" +
 	"\rMetadataFlags\x18\x03 \x03(\tR\rMetadataFlags\x12*\n" +
 	"\x06Scores\x18\x04 \x03(\v2\x12.pb.DimensionScoreR\x06Scores\"I\n" +
 	"\x11MatchRulesRequest\x124\n" +
-	"\vFileResults\x18\x01 \x03(\v2\x12.pb.FileScanResultR\vFileResults\"\xcd\x01\n" +
+	"\vFileResults\x18\x01 \x03(\v2\x12.pb.FileScanResultR\vFileResults\"U\n" +
+	"\x0ePromptFindings\x12\x1a\n" +
+	"\bFileName\x18\x01 \x01(\tR\bFileName\x12'\n" +
+	"\bFindings\x18\x02 \x03(\v2\v.pb.FindingR\bFindings\"\xcd\x01\n" +
 	"\aFinding\x12\x16\n" +
 	"\x06RuleID\x18\x01 \x01(\tR\x06RuleID\x12\x14\n" +
 	"\x05Title\x18\x02 \x01(\tR\x05Title\x12\x1a\n" +
@@ -559,9 +617,9 @@ const file_adviser_proto_rawDesc = "" +
 	"\x06Domain\x18\x04 \x01(\tR\x06Domain\x12 \n" +
 	"\vRemediation\x18\x05 \x01(\tR\vRemediation\x12\x1c\n" +
 	"\tStandards\x18\x06 \x03(\tR\tStandards\x12 \n" +
-	"\vTriggerType\x18\a \x01(\tR\vTriggerType\"=\n" +
-	"\x12MatchRulesResponse\x12'\n" +
-	"\bFindings\x18\x01 \x03(\v2\v.pb.FindingR\bFindings\"E\n" +
+	"\vTriggerType\x18\a \x01(\tR\vTriggerType\"J\n" +
+	"\x12MatchRulesResponse\x124\n" +
+	"\bFindings\x18\x01 \x03(\v2\x12.pb.PromptFindingsR\x0ePromptFindings\"E\n" +
 	"\x0fGetRulesRequest\x12\x16\n" +
 	"\x06Domain\x18\x01 \x01(\tR\x06Domain\x12\x1a\n" +
 	"\bSeverity\x18\x02 \x01(\tR\bSeverity\"5\n" +
@@ -585,34 +643,36 @@ func file_adviser_proto_rawDescGZIP() []byte {
 	return file_adviser_proto_rawDescData
 }
 
-var file_adviser_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_adviser_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_adviser_proto_goTypes = []any{
 	(*SubmitRequest)(nil),      // 0: pb.SubmitRequest
 	(*SubmitResponse)(nil),     // 1: pb.SubmitResponse
 	(*DimensionScore)(nil),     // 2: pb.DimensionScore
 	(*FileScanResult)(nil),     // 3: pb.FileScanResult
 	(*MatchRulesRequest)(nil),  // 4: pb.MatchRulesRequest
-	(*Finding)(nil),            // 5: pb.Finding
-	(*MatchRulesResponse)(nil), // 6: pb.MatchRulesResponse
-	(*GetRulesRequest)(nil),    // 7: pb.GetRulesRequest
-	(*GetRulesResponse)(nil),   // 8: pb.GetRulesResponse
+	(*PromptFindings)(nil),     // 5: pb.PromptFindings
+	(*Finding)(nil),            // 6: pb.Finding
+	(*MatchRulesResponse)(nil), // 7: pb.MatchRulesResponse
+	(*GetRulesRequest)(nil),    // 8: pb.GetRulesRequest
+	(*GetRulesResponse)(nil),   // 9: pb.GetRulesResponse
 }
 var file_adviser_proto_depIdxs = []int32{
 	2, // 0: pb.FileScanResult.Scores:type_name -> pb.DimensionScore
 	3, // 1: pb.MatchRulesRequest.FileResults:type_name -> pb.FileScanResult
-	5, // 2: pb.MatchRulesResponse.Findings:type_name -> pb.Finding
-	5, // 3: pb.GetRulesResponse.Rules:type_name -> pb.Finding
-	0, // 4: pb.Adviser.Submit:input_type -> pb.SubmitRequest
-	4, // 5: pb.Adviser.MatchRules:input_type -> pb.MatchRulesRequest
-	7, // 6: pb.Adviser.GetRules:input_type -> pb.GetRulesRequest
-	1, // 7: pb.Adviser.Submit:output_type -> pb.SubmitResponse
-	6, // 8: pb.Adviser.MatchRules:output_type -> pb.MatchRulesResponse
-	8, // 9: pb.Adviser.GetRules:output_type -> pb.GetRulesResponse
-	7, // [7:10] is the sub-list for method output_type
-	4, // [4:7] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	6, // 2: pb.PromptFindings.Findings:type_name -> pb.Finding
+	5, // 3: pb.MatchRulesResponse.Findings:type_name -> pb.PromptFindings
+	6, // 4: pb.GetRulesResponse.Rules:type_name -> pb.Finding
+	0, // 5: pb.Adviser.Submit:input_type -> pb.SubmitRequest
+	4, // 6: pb.Adviser.MatchRules:input_type -> pb.MatchRulesRequest
+	8, // 7: pb.Adviser.GetRules:input_type -> pb.GetRulesRequest
+	1, // 8: pb.Adviser.Submit:output_type -> pb.SubmitResponse
+	7, // 9: pb.Adviser.MatchRules:output_type -> pb.MatchRulesResponse
+	9, // 10: pb.Adviser.GetRules:output_type -> pb.GetRulesResponse
+	8, // [8:11] is the sub-list for method output_type
+	5, // [5:8] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_adviser_proto_init() }
@@ -626,7 +686,7 @@ func file_adviser_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_adviser_proto_rawDesc), len(file_adviser_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

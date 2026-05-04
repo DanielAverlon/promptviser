@@ -2,8 +2,6 @@ package pass2
 
 import "gopkg.in/yaml.v3"
 
-// TODO: change everything
-
 // promptMetadata mirrors the expected top-level YAML fields in a prompt file.
 // Fields are optional; missing fields produce no flags.
 type promptMetadata struct {
