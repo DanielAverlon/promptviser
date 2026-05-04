@@ -21,21 +21,12 @@ var promptExtensions = map[string]bool{
 	".md":   true,
 }
 
-// Result holds the combined output of all three passes across all scanned files.
+// Result holds the combined output of all three passes for a scanned file.
 type Result struct {
+	FileName       string
 	StaticTriggers []string
 	MetadataFlags  []string
 	Scores         []*pb.DimensionScore
-}
-
-// ToMatchRulesRequest converts the scan result into a gRPC request for the server.
-// No prompt text is included — only derived signals.
-func (r *Result) ToMatchRulesRequest() *pb.MatchRulesRequest {
-	return &pb.MatchRulesRequest{
-		Scores:         r.Scores,
-		MetadataFlags:  dedup(r.MetadataFlags),
-		StaticTriggers: dedup(r.StaticTriggers),
-	}
 }
 
 // TODO: add a ScanConfig to configure what triggers get ignored
@@ -48,15 +39,18 @@ func (r *Result) ToMatchRulesRequest() *pb.MatchRulesRequest {
 
 // Scan walks dir, runs all three passes over every prompt file found, and
 // returns the combined Result. Prompt text never leaves this function.
-func Scan(ctx context.Context, dir string, provider llm.Provider) (*Result, error) {
+func Scan(ctx context.Context, dir string, provider llm.Provider) ([]*pb.FileScanResult, error) {
 	files, err := collectPromptFiles(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &Result{}
+	results := []*pb.FileScanResult{}
 
 	for _, path := range files {
+		fileResult := &pb.FileScanResult{
+			FileName: path,
+		}
 		content, err := os.ReadFile(path)
 		if err != nil {
 			return nil, err
@@ -64,21 +58,23 @@ func Scan(ctx context.Context, dir string, provider llm.Provider) (*Result, erro
 
 		// Pass 1 — regex patterns
 		triggers := pass1.Check(content)
-		result.StaticTriggers = append(result.StaticTriggers, triggers...)
+		fileResult.StaticTriggers = append(fileResult.StaticTriggers, triggers...)
 
 		// Pass 2 — YAML/AST analysis
 		flags := pass2.Analyze(content)
-		result.MetadataFlags = append(result.MetadataFlags, flags...)
+		fileResult.MetadataFlags = append(fileResult.MetadataFlags, flags...)
 
-		// Pass 3 — LLM scoring
-		scores, err := pass3.Score(ctx, content, provider)
+		// Pass 3 — LLM scoring (receives pass1/pass2 signals as context)
+		scores, err := pass3.Score(ctx, content, fileResult.StaticTriggers, fileResult.MetadataFlags, provider)
 		if err != nil {
 			return nil, err
 		}
-		result.Scores = mergeScores(result.Scores, scores)
+		fileResult.Scores = mergeScores(fileResult.Scores, scores)
+
+		results = append(results, fileResult)
 	}
 
-	return result, nil
+	return results, nil
 }
 
 // collectPromptFiles returns all prompt files under dir recursively.
@@ -128,18 +124,6 @@ func mergeScores(existing, incoming []*pb.DimensionScore) []*pb.DimensionScore {
 				Dimension: s.Dimension,
 				Score:     s.Score,
 			})
-		}
-	}
-	return out
-}
-
-func dedup(items []string) []string {
-	seen := make(map[string]struct{}, len(items))
-	out := make([]string, 0, len(items))
-	for _, item := range items {
-		if _, ok := seen[item]; !ok {
-			seen[item] = struct{}{}
-			out = append(out, item)
 		}
 	}
 	return out

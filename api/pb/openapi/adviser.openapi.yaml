@@ -101,6 +101,27 @@ components:
             description: |-
                 DimensionScore represents a single LLM-scored quality or risk dimension.
                  Values are normalised floats in [0, 1].
+        FileScanResult:
+            type: object
+            properties:
+                FileName:
+                    type: string
+                    description: FileName is the relative path for reference only
+                StaticTriggers:
+                    type: array
+                    items:
+                        type: string
+                    description: StaticTriggers lists rule IDs or named patterns that fired locally with regex
+                MetadataFlags:
+                    type: array
+                    items:
+                        type: string
+                    description: MetadataFlags carries boolean YAML metadata
+                Scores:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/DimensionScore'
+                    description: Scores contains LLM-derived dimension scores
         Finding:
             type: object
             properties:
@@ -157,26 +178,11 @@ components:
         MatchRulesRequest:
             type: object
             properties:
-                Scores:
+                FileResults:
                     type: array
                     items:
-                        $ref: '#/components/schemas/DimensionScore'
-                    description: Scores contains LLM-derived dimension scores (Pass 3 output).
-                MetadataFlags:
-                    type: array
-                    items:
-                        type: string
-                    description: |-
-                        MetadataFlags carries boolean YAML metadata, e.g. "is_user_facing",
-                         "domain:medical".
-                StaticTriggers:
-                    type: array
-                    items:
-                        type: string
-                    description: |-
-                        StaticTriggers lists rule IDs or named patterns that fired locally during
-                         Pass 1 / Pass 2 (regex + AST), e.g. "MISSING_DELIMITER",
-                         "HARDCODED_SECRET".
+                        $ref: '#/components/schemas/FileScanResult'
+                    description: FileResults contains the aggregated results for all scanned files.
             description: |-
                 MatchRulesRequest carries anonymised signals from the local scanner.
                  No prompt text is included — only derived scores and metadata.
@@ -186,8 +192,20 @@ components:
                 Findings:
                     type: array
                     items:
-                        $ref: '#/components/schemas/Finding'
+                        $ref: '#/components/schemas/PromptFindings'
             description: MatchRulesResponse contains all rules that fired for the given input.
+        PromptFindings:
+            type: object
+            properties:
+                FileName:
+                    type: string
+                    description: FileName is the relative path for reference only
+                Findings:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Finding'
+                    description: Findings lists all matched rules with remediation guidance.
+            description: PromptFindings is the response for a single file, containing all matched rules.
         Status:
             type: object
             properties:

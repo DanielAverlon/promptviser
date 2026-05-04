@@ -49,6 +49,49 @@ Values are normalised floats in [0, 1].`,
 	},
 }
 
+var FileScanResult_MessageDescription = &api.MessageDescription{
+	Name:     "FileScanResult",
+	Display:  "File Scan Result",
+	FullName: "pb.FileScanResult",
+	Fields: []*api.FieldMeta{
+		{
+			Name:          "FileName",
+			FullName:      "pb.FileScanResult.FileName",
+			Display:       "File Name",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `FileName is the relative path for reference only`,
+		},
+		{
+			Name:          "StaticTriggers",
+			FullName:      "pb.FileScanResult.StaticTriggers",
+			Display:       "Static Triggers",
+			Type:          "[]string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `StaticTriggers lists rule IDs or named patterns that fired locally with regex`,
+		},
+		{
+			Name:          "MetadataFlags",
+			FullName:      "pb.FileScanResult.MetadataFlags",
+			Display:       "Metadata Flags",
+			Type:          "[]string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `MetadataFlags carries boolean YAML metadata`,
+		},
+		{
+			Name:          "Scores",
+			FullName:      "pb.FileScanResult.Scores",
+			Type:          "[]struct",
+			StructName:    "pb.DimensionScore",
+			SearchType:    "flat_object",
+			Documentation: `Scores contains LLM-derived dimension scores`,
+		},
+	},
+}
+
 var Finding_MessageDescription = &api.MessageDescription{
 	Name:          "Finding",
 	FullName:      "pb.Finding",
@@ -164,33 +207,13 @@ var MatchRulesRequest_MessageDescription = &api.MessageDescription{
 No prompt text is included — only derived scores and metadata.`,
 	Fields: []*api.FieldMeta{
 		{
-			Name:          "Scores",
-			FullName:      "pb.MatchRulesRequest.Scores",
+			Name:          "FileResults",
+			FullName:      "pb.MatchRulesRequest.FileResults",
+			Display:       "File Results",
 			Type:          "[]struct",
-			StructName:    "pb.DimensionScore",
+			StructName:    "pb.FileScanResult",
 			SearchType:    "flat_object",
-			Documentation: `Scores contains LLM-derived dimension scores (Pass 3 output).`,
-		},
-		{
-			Name:          "MetadataFlags",
-			FullName:      "pb.MatchRulesRequest.MetadataFlags",
-			Display:       "Metadata Flags",
-			Type:          "[]string",
-			SearchType:    "keyword",
-			SearchOptions: api.SearchOption_Sortable,
-			Documentation: `MetadataFlags carries boolean YAML metadata, e.g. "is_user_facing",
-"domain:medical".`,
-		},
-		{
-			Name:          "StaticTriggers",
-			FullName:      "pb.MatchRulesRequest.StaticTriggers",
-			Display:       "Static Triggers",
-			Type:          "[]string",
-			SearchType:    "keyword",
-			SearchOptions: api.SearchOption_Sortable,
-			Documentation: `StaticTriggers lists rule IDs or named patterns that fired locally during
-Pass 1 / Pass 2 (regex + AST), e.g. "MISSING_DELIMITER",
-"HARDCODED_SECRET".`,
+			Documentation: `FileResults contains the aggregated results for all scanned files.`,
 		},
 	},
 }
@@ -205,8 +228,34 @@ var MatchRulesResponse_MessageDescription = &api.MessageDescription{
 			Name:       "Findings",
 			FullName:   "pb.MatchRulesResponse.Findings",
 			Type:       "[]struct",
-			StructName: "pb.Finding",
+			StructName: "pb.PromptFindings",
 			SearchType: "flat_object",
+		},
+	},
+}
+
+var PromptFindings_MessageDescription = &api.MessageDescription{
+	Name:          "PromptFindings",
+	Display:       "Prompt Findings",
+	FullName:      "pb.PromptFindings",
+	Documentation: `PromptFindings is the response for a single file, containing all matched rules.`,
+	Fields: []*api.FieldMeta{
+		{
+			Name:          "FileName",
+			FullName:      "pb.PromptFindings.FileName",
+			Display:       "File Name",
+			Type:          "string",
+			SearchType:    "keyword",
+			SearchOptions: api.SearchOption_Sortable,
+			Documentation: `FileName is the relative path for reference only`,
+		},
+		{
+			Name:          "Findings",
+			FullName:      "pb.PromptFindings.Findings",
+			Type:          "[]struct",
+			StructName:    "pb.Finding",
+			SearchType:    "flat_object",
+			Documentation: `Findings lists all matched rules with remediation guidance.`,
 		},
 	},
 }
@@ -383,11 +432,13 @@ var (
 	messageDescriptions        = map[string]*api.MessageDescription{
 		"google.protobuf.Empty":             Empty_MessageDescription,
 		"pb.DimensionScore":                 DimensionScore_MessageDescription,
+		"pb.FileScanResult":                 FileScanResult_MessageDescription,
 		"pb.Finding":                        Finding_MessageDescription,
 		"pb.GetRulesRequest":                GetRulesRequest_MessageDescription,
 		"pb.GetRulesResponse":               GetRulesResponse_MessageDescription,
 		"pb.MatchRulesRequest":              MatchRulesRequest_MessageDescription,
 		"pb.MatchRulesResponse":             MatchRulesResponse_MessageDescription,
+		"pb.PromptFindings":                 PromptFindings_MessageDescription,
 		"pb.ServerStatus":                   ServerStatus_MessageDescription,
 		"pb.ServerStatusResponse":           ServerStatusResponse_MessageDescription,
 		"pb.ServerStatusResponse.PodsEntry": ServerStatusResponse_PodsEntry_MessageDescription,
@@ -399,11 +450,13 @@ var (
 	messageAllocators = map[string]MessageAllocator{
 		"google.protobuf.Empty":             func() any { return new(emptypb.Empty) },
 		"pb.DimensionScore":                 func() any { return new(DimensionScore) },
+		"pb.FileScanResult":                 func() any { return new(FileScanResult) },
 		"pb.Finding":                        func() any { return new(Finding) },
 		"pb.GetRulesRequest":                func() any { return new(GetRulesRequest) },
 		"pb.GetRulesResponse":               func() any { return new(GetRulesResponse) },
 		"pb.MatchRulesRequest":              func() any { return new(MatchRulesRequest) },
 		"pb.MatchRulesResponse":             func() any { return new(MatchRulesResponse) },
+		"pb.PromptFindings":                 func() any { return new(PromptFindings) },
 		"pb.ServerStatus":                   func() any { return new(ServerStatus) },
 		"pb.ServerStatusResponse":           func() any { return new(ServerStatusResponse) },
 		"pb.ServerStatusResponse.PodsEntry": func() any { return make(map[string]string) },

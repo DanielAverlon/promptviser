@@ -14,7 +14,7 @@ import (
 // by the client and returns every rule whose conditions are satisfied.
 // No prompt text is processed here — only numeric scores and named flags.
 func (s *Service) MatchRules(ctx context.Context, req *pb.MatchRulesRequest) (*pb.MatchRulesResponse, error) {
-	if req == nil {
+	if req == nil || len(req.FileResults) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "request is required")
 	}
 
@@ -23,18 +23,62 @@ func (s *Service) MatchRules(ctx context.Context, req *pb.MatchRulesRequest) (*p
 		return nil, status.Errorf(codes.Internal, "failed to fetch rules: %v", err)
 	}
 
-	scoreMap := buildScoreMap(req.Scores)
-	staticSet := buildStringSet(req.StaticTriggers)
-	metaSet := buildStringSet(req.MetadataFlags)
-
-	var findings []*pb.Finding
-	for _, r := range rules {
-		if ruleMatches(r, scoreMap, staticSet, metaSet) {
-			findings = append(findings, ruleToFinding(r))
+	var findings []*pb.PromptFindings
+	for _, fr := range req.FileResults {
+		pf := FindingsForFile(fr, rules)
+		if len(pf.Findings) > 0 {
+			findings = append(findings, pf)
 		}
 	}
 
 	return &pb.MatchRulesResponse{Findings: findings}, nil
+}
+
+// FindingsForFile returns a PromptFindings grouping all matched rules for a
+// single scanned file. It is a pure function with no I/O.
+func FindingsForFile(fr *pb.FileScanResult, rules []*adviserdb.Rule) *pb.PromptFindings {
+	// build lookup sets once so each rule check is O(1)
+	staticSet := toSet(fr.StaticTriggers)
+	metaSet := toSet(fr.MetadataFlags)
+	scoreMap := make(map[string]float64, len(fr.Scores))
+	for _, s := range fr.Scores {
+		scoreMap[s.Dimension] = float64(s.Score)
+	}
+
+	pf := &pb.PromptFindings{FileName: fr.FileName}
+	for _, r := range rules {
+		if ruleMatches(r, staticSet, metaSet, scoreMap) {
+			pf.Findings = append(pf.Findings, ruleToFinding(r))
+		}
+	}
+	return pf
+}
+
+// ruleMatches returns true when all conditions of the rule are satisfied.
+func ruleMatches(r *adviserdb.Rule, staticSet, metaSet map[string]bool, scoreMap map[string]float64) bool {
+	// static triggers: at least one must appear
+	if len(r.StaticTriggers) > 0 && !anyInSet(r.StaticTriggers, staticSet) {
+		return false
+	}
+	// metadata flags: all required flags must be present
+	if len(r.MetadataFlags) > 0 && !allInSet(r.MetadataFlags, metaSet) {
+		return false
+	}
+	// score thresholds: all must be satisfied
+	for key, threshold := range r.ScoreTriggers {
+		if strings.HasSuffix(key, "_gt") {
+			dim := strings.TrimSuffix(key, "_gt")
+			if scoreMap[dim] <= threshold {
+				return false
+			}
+		} else if strings.HasSuffix(key, "_lt") {
+			dim := strings.TrimSuffix(key, "_lt")
+			if scoreMap[dim] >= threshold {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // GetRules returns the full rule catalogue, optionally filtered by domain and/or severity.
@@ -56,47 +100,6 @@ func (s *Service) GetRules(ctx context.Context, req *pb.GetRulesRequest) (*pb.Ge
 	return &pb.GetRulesResponse{Rules: findings}, nil
 }
 
-// ruleMatches returns true when the rule's trigger conditions are satisfied by
-// the provided inputs.
-func ruleMatches(
-	r *adviserdb.Rule,
-	scoreMap map[string]float32,
-	staticSet map[string]struct{},
-	metaSet map[string]struct{},
-) bool {
-	// Static triggers: at least one must appear in staticSet.
-	if len(r.StaticTriggers) > 0 {
-		if !anyInSet(r.StaticTriggers, staticSet) {
-			return false
-		}
-	}
-
-	// Metadata flags: all required flags must be present.
-	if len(r.MetadataFlags) > 0 {
-		if !anyInSet(r.MetadataFlags, metaSet) {
-			return false
-		}
-	}
-
-	// Score triggers: every threshold condition must be satisfied.
-	for key, threshold := range r.ScoreTriggers {
-		if strings.HasSuffix(key, "_gt") {
-			dim := strings.TrimSuffix(key, "_gt")
-			if score, ok := scoreMap[dim]; !ok || score <= float32(threshold) {
-				return false
-			}
-		} else if strings.HasSuffix(key, "_lt") {
-			dim := strings.TrimSuffix(key, "_lt")
-			if score, ok := scoreMap[dim]; !ok || score >= float32(threshold) {
-				return false
-			}
-		}
-	}
-
-	// A rule with no triggers of any kind is informational and always fires.
-	return true
-}
-
 func ruleToFinding(r *adviserdb.Rule) *pb.Finding {
 	return &pb.Finding{
 		RuleID:      r.RuleID,
@@ -109,29 +112,28 @@ func ruleToFinding(r *adviserdb.Rule) *pb.Finding {
 	}
 }
 
-func buildScoreMap(scores []*pb.DimensionScore) map[string]float32 {
-	m := make(map[string]float32, len(scores))
-	for _, s := range scores {
-		if s != nil {
-			m[s.Dimension] = s.Score
-		}
+func toSet(items []string) map[string]bool {
+	s := make(map[string]bool, len(items))
+	for _, v := range items {
+		s[v] = true
 	}
-	return m
+	return s
 }
 
-func buildStringSet(items []string) map[string]struct{} {
-	m := make(map[string]struct{}, len(items))
-	for _, item := range items {
-		m[item] = struct{}{}
-	}
-	return m
-}
-
-func anyInSet(items []string, set map[string]struct{}) bool {
-	for _, item := range items {
-		if _, ok := set[item]; ok {
+func anyInSet(items []string, set map[string]bool) bool {
+	for _, v := range items {
+		if set[v] {
 			return true
 		}
 	}
 	return false
+}
+
+func allInSet(items []string, set map[string]bool) bool {
+	for _, v := range items {
+		if !set[v] {
+			return false
+		}
+	}
+	return true
 }

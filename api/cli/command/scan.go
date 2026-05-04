@@ -2,6 +2,7 @@ package command
 
 import (
 	"github.com/effective-security/promptviser/api/cli"
+	"github.com/effective-security/promptviser/api/pb"
 	"github.com/effective-security/promptviser/internal/config"
 	"github.com/effective-security/promptviser/internal/llm"
 	"github.com/effective-security/promptviser/internal/scanner"
@@ -14,6 +15,7 @@ type ScanCmd struct {
 
 // Run the command
 func (a *ScanCmd) Run(c *cli.Cli) error {
+	ctx := c.Context()
 	cfg, err := config.Load(c.Cfg)
 	if err != nil {
 		return err
@@ -24,22 +26,24 @@ func (a *ScanCmd) Run(c *cli.Cli) error {
 	}
 
 	// 1. Run locally, no prompt text leaves the machine
-	result, err := scanner.Scan(c.Context(), a.Path, provider)
+	results, err := scanner.Scan(ctx, a.Path, provider)
 	if err != nil {
 		return err
 	}
 
 	// TODO: add back adviser and then match the rules
-	_, err = c.AdviserClient(true)
+	adviser, err := c.AdviserClient(true)
 	if err != nil {
 		return err
 	}
 
 	// 2. Only scores + triggers go to the server
-	// findings, err := adviser.MatchRules(c.Context(), result.ToMatchRulesRequest())
-	// if err != nil {
-	// 	return err
-	// }
+	resp, err := adviser.MatchRules(ctx, &pb.MatchRulesRequest{
+		FileResults: results,
+	})
+	if err != nil {
+		return err
+	}
 
-	return c.Print(result)
+	return c.Print(resp)
 }
