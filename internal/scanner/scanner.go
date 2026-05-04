@@ -67,7 +67,13 @@ func Scan(ctx context.Context, dir string, provider llm.Provider) ([]*pb.FileSca
 		// Pass 3 — LLM scoring (receives pass1/pass2 signals as context)
 		scores, err := pass3.Score(ctx, content, fileResult.StaticTriggers, fileResult.MetadataFlags, provider)
 		if err != nil {
-			return nil, err
+			// for now return dummy scores on LLM error
+			scores = []*pb.DimensionScore{
+				{
+					Dimension: "error: " + err.Error(),
+					Score:     1,
+				},
+			}
 		}
 		fileResult.Scores = mergeScores(fileResult.Scores, scores)
 

@@ -2,6 +2,7 @@ package adviser_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	pb "github.com/effective-security/promptviser/api/pb"
@@ -177,6 +178,92 @@ func TestMatchRules_CombinedRule_MissingMetaFlag_NoMatch(t *testing.T) {
 	require.NoError(t, err)
 	// No rules matched — Findings slice should be empty (files with no hits are omitted)
 	require.Empty(t, resp.Findings)
+}
+
+func TestMatchRules_NoRulesMatched_ReturnsEmptyFindings(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	mockDB.EXPECT().
+		GetAllRules(gomock.Any(), "", "").
+		Return(sampleRules, nil)
+
+	req := &pb.MatchRulesRequest{
+		FileResults: []*pb.FileScanResult{
+			{
+				FileName:       "prompts/clean.yaml",
+				StaticTriggers: []string{"UNRELATED_TRIGGER"},
+				MetadataFlags:  []string{"unrelated_flag"},
+				Scores: []*pb.DimensionScore{
+					{Dimension: "unrelated_score", Score: 0.5},
+				},
+			},
+		},
+	}
+
+	resp, err := svc.MatchRules(context.Background(), req)
+	require.NoError(t, err)
+	require.Empty(t, resp.Findings)
+}
+
+func TestMatchRules_DBError_ReturnsError(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	mockDB.EXPECT().
+		GetAllRules(gomock.Any(), "", "").
+		Return(nil, fmt.Errorf("database error"))
+
+	req := &pb.MatchRulesRequest{
+		FileResults: []*pb.FileScanResult{
+			{
+				FileName: "prompts/agent.yaml",
+				Scores: []*pb.DimensionScore{
+					{Dimension: "output_consequence", Score: 0.9},
+					{Dimension: "human_oversight", Score: 0.1},
+				},
+			},
+		},
+	}
+
+	_, err := svc.MatchRules(context.Background(), req)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to fetch rules")
+}
+
+func TestMatchRules_MultipleFiles_MatchesCorrectly(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	mockDB.EXPECT().
+		GetAllRules(gomock.Any(), "", "").
+		Return(sampleRules, nil)
+
+	req := &pb.MatchRulesRequest{
+		FileResults: []*pb.FileScanResult{
+			{
+				FileName:       "prompts/agent.yaml",
+				StaticTriggers: []string{"MISSING_AI_DISCLOSURE"},
+				MetadataFlags:  []string{"is_user_facing"},
+			},
+			{
+				FileName:       "prompts/chat.yaml",
+				StaticTriggers: []string{"MISSING_DELIMITER"},
+			},
+			{
+				FileName: "prompts/clean.yaml", // no triggers
+			},
+		},
+	}
+
+	resp, err := svc.MatchRules(context.Background(), req)
+	require.NoError(t, err)
+	require.Len(t, resp.Findings, 2) // two files with matches
+
+	ruleIDsAgent := ruleIDsForFile(resp.Findings, "prompts/agent.yaml")
+	require.Contains(t, ruleIDsAgent, "ACC-001")
+	require.NotContains(t, ruleIDsAgent, "SEC-001")
+
+	ruleIDsChat := ruleIDsForFile(resp.Findings, "prompts/chat.yaml")
+	require.Contains(t, ruleIDsChat, "SEC-001")
+	require.NotContains(t, ruleIDsChat, "ACC-001")
 }
 
 func TestMatchRules_NilRequest_ReturnsError(t *testing.T) {
