@@ -2,6 +2,7 @@ package adviser
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	pb "github.com/effective-security/promptviser/api/pb"
@@ -27,6 +28,7 @@ func (s *Service) MatchRules(ctx context.Context, req *pb.MatchRulesRequest) (*p
 	for _, fr := range req.FileResults {
 		pf := FindingsForFile(fr, rules)
 		if len(pf.Findings) > 0 {
+			SortFindings(&pf.Findings)
 			findings = append(findings, pf)
 		}
 	}
@@ -79,6 +81,18 @@ func ruleMatches(r *adviserdb.Rule, staticSet, metaSet map[string]bool, scoreMap
 		}
 	}
 	return true
+}
+
+func SortFindings(findings *[]*pb.Finding) {
+	// sort findings by severity (High > Medium > Low) then by rule ID
+	severityRank := map[string]int{"High": 3, "Medium": 2, "Low": 1}
+	sort.SliceStable(*findings, func(i, j int) bool {
+		a, b := (*findings)[i], (*findings)[j]
+		if severityRank[a.Severity] != severityRank[b.Severity] {
+			return severityRank[a.Severity] > severityRank[b.Severity]
+		}
+		return a.RuleID < b.RuleID
+	})
 }
 
 // GetRules returns the full rule catalogue, optionally filtered by domain and/or severity.
