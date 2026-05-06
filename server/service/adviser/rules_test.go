@@ -273,6 +273,28 @@ func TestMatchRules_NilRequest_ReturnsError(t *testing.T) {
 	require.Error(t, err)
 }
 
+func Test_sortFindings_SortsBySeverity(t *testing.T) {
+	findings := []*pb.Finding{
+		{RuleID: "LOW-001", Severity: "Low"},
+		{RuleID: "HIGH-001", Severity: "High"},
+		{RuleID: "MEDIUM-001", Severity: "Medium"},
+	}
+	adviser.SortFindings(&findings)
+	require.Equal(t, "High", findings[0].Severity)
+	require.Equal(t, "Medium", findings[1].Severity)
+	require.Equal(t, "Low", findings[2].Severity)
+}
+
+func Test_sortFindings_SortsByRuleIDWhenSeverityTied(t *testing.T) {
+	findings := []*pb.Finding{
+		{RuleID: "B-001", Severity: "High"},
+		{RuleID: "A-001", Severity: "High"},
+	}
+	adviser.SortFindings(&findings)
+	require.Equal(t, "A-001", findings[0].RuleID)
+	require.Equal(t, "B-001", findings[1].RuleID)
+}
+
 // ----- helpers ----------------------------------------------------------------
 
 // ruleIDsForFile extracts all matched rule IDs for the first PromptFindings
