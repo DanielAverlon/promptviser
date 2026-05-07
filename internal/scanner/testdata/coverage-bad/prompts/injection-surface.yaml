@@ -1,0 +1,21 @@
+# Expected rule violations: SEC-001, SEC-002, SEC-004, SEC-005
+# SEC-001 — user input variable without structural delimiters
+# SEC-002 — external content ingestion without injection warning
+# SEC-004 — unsanitized output to HTML context
+# SEC-005 — multi-agent reference without trust boundary declaration
+is_user_facing: true
+domain: general
+model_id: gpt-4o
+version: 1.0.0
+prompt: |
+  You help users by searching the web and summarising pages.
+
+  Here is content retrieved from the following webpage:
+  {{.RetrievedDocuments}}
+
+  The tool output from the other agent in the orchestrator pipeline is:
+  {{.AgentResult}}
+
+  Render the summary as template.HTML for direct page injection.
+
+  User question: {{.UserInput}}
