@@ -18,6 +18,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/dig v1.19.0
 	go.uber.org/mock v0.6.0
+	google.golang.org/genai v1.56.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20260414002931-afd174a4e478
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
@@ -29,6 +30,8 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/pkg/errors v0.9.1 // indirect

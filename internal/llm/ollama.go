@@ -51,14 +51,5 @@ func (p *ollamaProvider) Score(ctx context.Context, content []byte) ([]*pb.Dimen
 		return nil, fmt.Errorf("llm/ollama: failed to decode response: %w", err)
 	}
 
-	var scores map[string]float32
-	if err := json.Unmarshal([]byte(result.Response), &scores); err != nil {
-		return nil, fmt.Errorf("llm/ollama: failed to parse scores: %w", err)
-	}
-
-	out := make([]*pb.DimensionScore, 0, len(scores))
-	for dim, score := range scores {
-		out = append(out, &pb.DimensionScore{Dimension: dim, Score: score})
-	}
-	return out, nil
+	return parseScores(result.Response)
 }

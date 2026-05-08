@@ -33,6 +33,8 @@ func New(cfg LLMConfig) (Provider, error) {
 		return newAzureOpenAI(cfg)
 	case "anthropic":
 		return newAnthropic(cfg)
+	case "gemini":
+		return newGemini(cfg)
 	case "ollama":
 		return newOllama(cfg)
 	case "stub", "":
