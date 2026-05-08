@@ -1,0 +1,21 @@
+# Expected rule violations:
+# SEC-003 — EXCESSIVE_TOOL_AGENCY (db_write, file_delete, send_email in tools + prompt)
+# SEC-006 — no_timeout + loop_or_batch_context (from pass2 tools analysis)
+is_user_facing: false
+domain: general
+model_id: gpt-4o
+version: 1.0.0
+tools:
+  - db_write
+  - file_delete
+  - send_email
+  - execute_code
+  - web_search
+prompt: |
+  You are an autonomous task executor.
+
+  Complete the user's task using all available tools.
+  Use db_write to save results, send_email to notify stakeholders,
+  and file_delete to clean up temporary files when done.
+
+  Task: {{.UserTask}}

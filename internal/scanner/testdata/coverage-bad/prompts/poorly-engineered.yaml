@@ -1,0 +1,18 @@
+# Expected rule violations: PE-001, PE-002, PE-005, PE-007
+# PE-001 — no persona opener
+# PE-002 — no output format spec
+# PE-005 — negative-only instructions without positive redirect
+# PE-007 — conflicting instructions (concise vs comprehensive)
+is_user_facing: false
+domain: general
+model_id: gpt-4o
+version: 1.0.0
+prompt: |
+  Do not give wrong answers.
+  Never make up facts.
+  Avoid using technical jargon.
+  Do not be verbose.
+
+  Be concise but also provide comprehensive detail in every response.
+
+  Answer the following: {{.UserInput}}

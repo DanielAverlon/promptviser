@@ -1,6 +1,9 @@
 package pass1
 
-import "regexp"
+import (
+	"bytes"
+	"regexp"
+)
 
 // pattern holds a compiled regex and the trigger name it fires.
 type pattern struct {
@@ -8,14 +11,13 @@ type pattern struct {
 	trigger string
 }
 
+// personaPattern matches the presence of a role/persona declaration.
+// Used as an absence check: if it does NOT match, MISSING_PERSONA fires.
+var personaPattern = regexp.MustCompile(`(?i)\b(?:You\s+are|Your\s+role\s+is|Act\s+as\s+a|As\s+a\s+\w+\s+assistant)\b`)
+
 // patterns is the list of all Pass 1 regex rules.
 // Each entry maps to a StaticTrigger name that the server rules reference.
 var patterns = []pattern{
-	// User input variable present without structural delimiter
-	// Fires when a Go template variable for user input exists in the file.
-	// The absence of surrounding ### / """ / XML tags is checked separately.
-	{regexp.MustCompile(`\{\{\.(?:UserInput|UserMessage|Query|Prompt)\}\}`), "MISSING_DELIMITER"},
-
 	// PII template variables
 	{regexp.MustCompile(`\{\{\.(?:SSN|DOB|Email|Phone|MedicalRecord|DateOfBirth|SocialSecurity)\}\}`), "PII_VARIABLE"},
 
@@ -56,23 +58,16 @@ var patterns = []pattern{
 	// Missing refusal instruction
 	{regexp.MustCompile(`(?i)\b(?:outside\s+my\s+scope|I\s+cannot\s+help\s+with|not\s+designed\s+to)\b`), "MISSING_REFUSAL_INSTRUCTION"},
 
-	// Crisis-adjacent keywords without escalation path
-	{regexp.MustCompile(`(?i)\b(?:self.harm|suicide|crisis\s+line|988|emergency\s+services)\b`), "MISSING_CRISIS_ESCALATION"},
-
 	// Agentic loop without termination
 	{regexp.MustCompile(`(?i)\b(?:repeat\s+until|loop\s+until|keep\s+trying|retry\s+indefinitely)\b`), "AGENTIC_LOOP_NO_TERMINATION"},
 
-	// Missing AI self-identification in user-facing prompt
-	{regexp.MustCompile(`(?i)\b(?:I\s+am\s+an\s+AI|AI\s+assistant|language\s+model|automated\s+system)\b`), "MISSING_AI_DISCLOSURE"},
+	// Missing AI self-identification — fires only on explicit first-person
+	// declarations ("I am an AI / language model"). Role-description phrases
+	// like "an AI assistant" are intentionally excluded to avoid false positives.
+	{regexp.MustCompile(`(?i)\bI\s+am\s+an?\s+(?:AI\b|language\s+model)\b`), "MISSING_AI_DISCLOSURE"},
 
 	// Synthetic media generation
 	{regexp.MustCompile(`(?i)\b(?:generate\s+image\s+of|create\s+a\s+photo|make\s+a\s+voice|synthesize\s+audio|impersonate|write\s+as\s+if\s+you\s+are)\b`), "SYNTHETIC_MEDIA_GENERATION"},
-
-	// No role or persona definition
-	{regexp.MustCompile(`(?i)\b(?:You\s+are|Your\s+role\s+is|Act\s+as\s+a|As\s+a\s+\w+\s+assistant)\b`), "MISSING_PERSONA"},
-
-	// Negative-only instructions
-	{regexp.MustCompile(`(?i)\b(?:do\s+not|never|avoid)\b`), "NEGATIVE_ONLY_INSTRUCTION"},
 
 	// Token-heavy prompt (rough heuristic: file > 3000 bytes)
 	// Handled separately in Check() below.
@@ -82,14 +77,45 @@ var patterns = []pattern{
 	{regexp.MustCompile(`(?i)\bprovide\s+comprehensive\b`), "CONFLICTING_INSTRUCTIONS"},
 
 	// Output going to DB or file
-	{regexp.MustCompile(`(?i)\b(?:db\.Exec|file\.Write|os\.WriteFile|INSERT\s+INTO|UPDATE\s+\w+\s+SET)\b`), "OUTPUT_TO_DB_OR_FILE"},
+	{regexp.MustCompile(`(?i)(?:db\.Exec|file\.Write|os\.WriteFile|INSERT\s+INTO|UPDATE\s+\w+\s+SET)\b`), "OUTPUT_TO_DB_OR_FILE"},
 
-	// Missing bias guardrail
-	{regexp.MustCompile(`(?i)\b(?:do\s+not\s+consider|ignore\s+protected|race|gender|age|religion)\b`), "MISSING_BIAS_GUARDRAIL"},
+	// No role or persona definition — absence check, handled in Check() below.
+	// Do NOT add a presence pattern here.
+
+	// Missing bias guardrail — fires when the prompt instructs the model to
+	// actively use protected characteristics as selection criteria, or when
+	// a weak/inverted guardrail ("do not consider") is present.
+	{regexp.MustCompile(`(?i)\b(?:do\s+not\s+consider|ignore\s+protected|consider\s+their\s+(?:race|gender|age|religion))\b`), "MISSING_BIAS_GUARDRAIL"},
 }
 
 // tokenHeavyThreshold is the byte size above which TOKEN_HEAVY_PROMPT fires.
 const tokenHeavyThreshold = 3000
+
+// negOnlyRe / negOnlyThreshold implement NEGATIVE_ONLY_INSTRUCTION: fire only
+// when the prompt contains 4 or more negative directives, indicating it relies
+// predominantly on prohibitions rather than positive guidance.
+var negOnlyRe = regexp.MustCompile(`(?i)\b(?:do\s+not|never|avoid)\b`)
+
+const negOnlyThreshold = 4
+
+// delimVarRe matches a user-input template variable that stands alone on its
+// line (the form that should be wrapped in structural delimiters).
+// inlineVarRe matches the same variable anywhere on a line.
+// delimLineRe matches structural delimiter markers (### or """).
+var (
+	delimVarRe  = regexp.MustCompile(`(?i)^\s*\{\{\.(?:UserInput|UserMessage|Query|Prompt)\}\}\s*$`)
+	inlineVarRe = regexp.MustCompile(`(?i)\{\{\.(?:UserInput|UserMessage|Query|Prompt)\}\}`)
+	delimLineRe = regexp.MustCompile(`###|"""`)
+)
+
+// crisisRe matches crisis / self-harm keywords.
+// escalationRe matches explicit escalation-path phrases (988, crisis line, etc.).
+// MISSING_CRISIS_ESCALATION fires when crisis keywords are present but no
+// escalation path has been provided.
+var (
+	crisisRe     = regexp.MustCompile(`(?i)\b(?:self[\s.\-]?harm|suicide|suicidal)\b`)
+	escalationRe = regexp.MustCompile(`(?i)\b(?:988|crisis\s+line|crisis\s+lifeline|emergency\s+services)\b`)
+)
 
 // Check runs all Pass 1 regex patterns against content and returns the list
 // of unique StaticTrigger names that fired. Duplicates are collapsed.
@@ -107,9 +133,64 @@ func Check(content []byte) []string {
 		triggered["TOKEN_HEAVY_PROMPT"] = struct{}{}
 	}
 
+	// Fire MISSING_PERSONA only when no persona declaration is found.
+	if !personaPattern.Match(content) {
+		triggered["MISSING_PERSONA"] = struct{}{}
+	}
+
+	// NEGATIVE_ONLY_INSTRUCTION: fire when 4+ negative directives are present.
+	if len(negOnlyRe.FindAll(content, -1)) >= negOnlyThreshold {
+		triggered["NEGATIVE_ONLY_INSTRUCTION"] = struct{}{}
+	}
+
+	// MISSING_DELIMITER: fire when a user-input variable appears without a
+	// structural delimiter (### or """) on the immediately preceding line.
+	if hasUndelimitedInput(content) {
+		triggered["MISSING_DELIMITER"] = struct{}{}
+	}
+
+	// MISSING_CRISIS_ESCALATION: fire when crisis keywords are present but no
+	// escalation path (988, crisis line, etc.) is provided.
+	if crisisRe.Match(content) && !escalationRe.Match(content) {
+		triggered["MISSING_CRISIS_ESCALATION"] = struct{}{}
+	}
+
 	result := make([]string, 0, len(triggered))
 	for name := range triggered {
 		result = append(result, name)
 	}
 	return result
+}
+
+// hasUndelimitedInput returns true if any user-input template variable
+// ({{.UserInput}}, {{.UserMessage}}, etc.) appears either:
+//   - inline on a line with other text (always undelimited), or
+//   - alone on a line that is NOT immediately preceded by a ### / """ marker.
+func hasUndelimitedInput(content []byte) bool {
+	lines := bytes.Split(content, []byte("\n"))
+	for i, line := range lines {
+		if !inlineVarRe.Match(line) {
+			continue
+		}
+		// Variable embedded inline with other text → undelimited.
+		if !delimVarRe.Match(line) {
+			return true
+		}
+		// Variable is alone on its line; check the immediately preceding
+		// non-empty line for a structural delimiter marker.
+		precededByDelimiter := false
+		for j := i - 1; j >= 0; j-- {
+			if len(bytes.TrimSpace(lines[j])) == 0 {
+				continue
+			}
+			if delimLineRe.Match(lines[j]) {
+				precededByDelimiter = true
+			}
+			break
+		}
+		if !precededByDelimiter {
+			return true
+		}
+	}
+	return false
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/effective-security/promptviser/api/pb"
 	"github.com/effective-security/promptviser/internal/adviserdb"
 	"github.com/effective-security/promptviser/internal/llm"
 	advisersvc "github.com/effective-security/promptviser/server/service/adviser"
@@ -57,9 +58,10 @@ func Test_Scan(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, results)
 
-	// Check that we got some triggers and scores
+	// Check that we got results with scores — not every file is guaranteed to
+	// have static triggers (e.g. a well-written prompt with a persona and no
+	// injection surface).
 	for _, result := range results {
-		assert.NotNil(t, result.StaticTriggers)
 		assert.NotNil(t, result.Scores)
 	}
 }
@@ -164,4 +166,82 @@ func Test_ScanReal(t *testing.T) {
 	jsonResults, _ := json.MarshalIndent(results, "", "  ")
 	fmt.Printf("Scan results:\n%s\n", string(jsonResults))
 	t.Fail()
+}
+
+func Test_ScanCoverageBad(t *testing.T) {
+	ctx := context.Background()
+	provider, err := llm.New(llm.LLMConfig{Provider: "stub"})
+	require.NoError(t, err)
+
+	results, err := Scan(ctx, "./testdata/coverage-bad", provider)
+	require.NoError(t, err)
+	require.Len(t, results, 6)
+
+	// Index results by filename for stable lookups regardless of walk order.
+	byFile := make(map[string]*pb.FileScanResult, len(results))
+	for _, r := range results {
+		byFile[r.FileName] = r
+	}
+
+	check := func(file string, wantTriggers, wantFlags []string) {
+		t.Helper()
+		r, ok := byFile[file]
+		require.Truef(t, ok, "file not found in results: %s", file)
+		assert.ElementsMatch(t, wantTriggers, r.StaticTriggers, "triggers for %s", file)
+		assert.ElementsMatch(t, wantFlags, r.MetadataFlags, "flags for %s", file)
+	}
+
+	// agent-loop: has "You are", irreversible tool names in prompt text
+	check("testdata/coverage-bad/prompts/agent-loop.yaml",
+		[]string{"EXCESSIVE_TOOL_AGENCY"},
+		[]string{"no_timeout", "loop_or_batch_context"},
+	)
+
+	// data-collection: no persona, PII vars, Bearer secret, confidentiality phrase, memory ref, user input
+	check("testdata/coverage-bad/prompts/data-collection.yaml",
+		[]string{"PII_VARIABLE", "HARDCODED_SECRET", "CONFIDENTIALITY_INSTRUCTION", "MEMORY_REFERENCE", "MISSING_DELIMITER", "MISSING_PERSONA", "NEGATIVE_ONLY_INSTRUCTION"},
+		[]string{"is_user_facing", "domain:medical"},
+	)
+
+	// decision-bot: no persona, bias keywords, synthetic media
+	check("testdata/coverage-bad/prompts/decision-bot.yaml",
+		[]string{"MISSING_BIAS_GUARDRAIL", "SYNTHETIC_MEDIA_GENERATION", "MISSING_PERSONA"},
+		[]string{"is_user_facing", "domain:hiring"},
+	)
+
+	// high-stakes: has "You are", crisis keywords, loop, uncertainty phrase, RAG block, user input
+	check("testdata/coverage-bad/prompts/high-stakes.yaml",
+		[]string{"MISSING_UNCERTAINTY_CLAUSE", "MISSING_CRISIS_ESCALATION", "AGENTIC_LOOP_NO_TERMINATION", "NEGATIVE_ONLY_INSTRUCTION", "MISSING_DELIMITER"},
+		[]string{"is_user_facing", "domain:mental_health"},
+	)
+
+	// injection-surface: no "You are", retrieved content, multi-agent, unsanitized output, user input
+	check("testdata/coverage-bad/prompts/injection-surface.yaml",
+		[]string{"EXTERNAL_CONTENT_INGESTION", "MULTI_AGENT_REFERENCE", "UNSANITIZED_OUTPUT", "MISSING_DELIMITER", "MISSING_PERSONA"},
+		[]string{"is_user_facing"},
+	)
+
+	// poorly-engineered: no persona, negative-only, conflicting instructions, user input
+	check("testdata/coverage-bad/prompts/poorly-engineered.yaml",
+		[]string{"MISSING_PERSONA", "NEGATIVE_ONLY_INSTRUCTION", "CONFLICTING_INSTRUCTIONS", "MISSING_DELIMITER"},
+		[]string{},
+	)
+}
+
+func Test_ScanCoverageFixed(t *testing.T) {
+	ctx := context.Background()
+	provider, err := llm.New(llm.LLMConfig{Provider: "stub"})
+	require.NoError(t, err)
+
+	results, err := Scan(ctx, "./testdata/coverage-fixed", provider)
+	require.NoError(t, err)
+	require.Len(t, results, 6)
+
+	// Check that no static triggers fire on the fixed versions of the prompts.
+	// MetadataFlags (is_user_facing, domain:*) are not checked here — they are
+	// legitimate domain attributes of a well-written prompt, not scanner-detected
+	// problems. Rule findings derived from those flags are tested separately.
+	for _, r := range results {
+		assert.Empty(t, r.StaticTriggers, "expected no triggers for %s", r.FileName)
+	}
 }
