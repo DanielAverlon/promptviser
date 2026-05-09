@@ -50,8 +50,11 @@ func New(cfg LLMConfig) (Provider, error) {
 var metaPrompt string
 
 // parseScores extracts dimension scores from a raw LLM response string.
-// It strips markdown code fences if the model wraps its output in them.
+// It accepts both the two-key format {"reasoning":{…},"scores":{…}} produced
+// by the current prompt and the legacy flat format {"dim":0.5,…}.
+// Markdown code fences are stripped if present.
 func parseScores(raw string) ([]*pb.DimensionScore, error) {
+	fmt.Printf("LLM raw response:\n%s\n", raw) // for debugging
 	raw = strings.TrimSpace(raw)
 	if strings.HasPrefix(raw, "```") {
 		first := strings.Index(raw, "\n")
@@ -61,13 +64,25 @@ func parseScores(raw string) ([]*pb.DimensionScore, error) {
 		}
 	}
 
-	var scores map[string]float32
-	if err := json.Unmarshal([]byte(raw), &scores); err != nil {
-		return nil, fmt.Errorf("failed to parse scores from LLM response: %w\nraw: %s", err, raw)
+	// Try two-key format first.
+	var twoKey struct {
+		Scores map[string]float32 `json:"scores"`
+	}
+	if err := json.Unmarshal([]byte(raw), &twoKey); err == nil && len(twoKey.Scores) > 0 {
+		result := make([]*pb.DimensionScore, 0, len(twoKey.Scores))
+		for dim, score := range twoKey.Scores {
+			result = append(result, &pb.DimensionScore{Dimension: dim, Score: score})
+		}
+		return result, nil
 	}
 
-	result := make([]*pb.DimensionScore, 0, len(scores))
-	for dim, score := range scores {
+	// Fall back to legacy flat format.
+	var flat map[string]float32
+	if err := json.Unmarshal([]byte(raw), &flat); err != nil {
+		return nil, fmt.Errorf("failed to parse scores from LLM response: %w\nraw: %s", err, raw)
+	}
+	result := make([]*pb.DimensionScore, 0, len(flat))
+	for dim, score := range flat {
 		result = append(result, &pb.DimensionScore{Dimension: dim, Score: score})
 	}
 	return result, nil
