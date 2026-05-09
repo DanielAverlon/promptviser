@@ -44,6 +44,25 @@ func Test_parseScores(t *testing.T) {
 				{Dimension: "complexity", Score: 0.7},
 			},
 		},
+		{
+			name: "2 Pass Markdown",
+			input: `
+				{
+  "reasoning": {
+    "pii_exposure": "Contains {{.SSN}} and {{.Email}} template vars — high confidence",
+    "output_consequence": "Medical domain but response is informational only — moderate"
+  },
+  "scores": {
+    "pii_exposure": 0.9,
+    "output_consequence": 0.5
+  }
+}
+			`,
+			expected: []*pb.DimensionScore{
+				{Dimension: "pii_exposure", Score: 0.9},
+				{Dimension: "output_consequence", Score: 0.5},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
