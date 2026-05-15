@@ -4,11 +4,20 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/effective-security/promptviser/api/pb"
 	"golang.org/x/term"
 )
+
+// ScanInfo holds the parsed metadata from a saved scan filename.
+type ScanInfo struct {
+	ID          string
+	Filename    string
+	ProjectPath string
+	Timestamp   time.Time
+}
 
 var (
 	Info    = lipgloss.NewStyle().Foreground(lipgloss.Color("32")).Render("✓")
@@ -55,7 +64,7 @@ func PrintScanSummary(results *pb.MatchRulesResponse, scanID string) {
 		}
 		// print filename, stripped to relative path
 		fmt.Println()
-		fmt.Println("  " + bold.Render(shortPath(ff.FileName)))
+		fmt.Println("  " + bold.Render(ShortPath(ff.FileName)))
 
 		for i, f := range ff.Findings {
 			totalFindings++
@@ -94,7 +103,7 @@ func PrintScanSummary(results *pb.MatchRulesResponse, scanID string) {
 	fmt.Println()
 }
 
-func shortPath(full string) string {
+func ShortPath(full string) string {
 	// show path from "prompts/" onwards if present
 	if idx := strings.Index(full, "prompts/"); idx != -1 {
 		return full[idx:]
@@ -123,4 +132,37 @@ func PrintRulesList(rules *pb.GetRulesResponse) {
 			muted.Render(strings.Join(r.Standards, " · ")))
 	}
 	fmt.Println(divider)
+}
+
+// PrintScansList renders pvctl scan-list output grouped by project path.
+// scans is a map of project path → list of scan entries.
+func PrintScansList(scans map[string][]*ScanInfo) {
+	total := 0
+	for _, entries := range scans {
+		total += len(entries)
+	}
+
+	fmt.Println()
+	fmt.Println(bold.Render("SAVED SCANS") + "  " + muted.Render(fmt.Sprintf("(%d total)", total)))
+	fmt.Println(divider)
+
+	for project, entries := range scans {
+		fmt.Println()
+		fmt.Println("  " + bold.Render(project))
+		for i, s := range entries {
+			connector := "├─"
+			if i == len(entries)-1 {
+				connector = "└─"
+			}
+			fmt.Printf("  %s %s  %s\n",
+				connector,
+				bold.Render(s.ID),
+				muted.Render(s.Timestamp.Format("2006-01-02 15:04:05")))
+		}
+	}
+
+	fmt.Println()
+	fmt.Println(divider)
+	fmt.Println(muted.Render("  Use pvctl scan-view <id> to view a saved scan"))
+	fmt.Println()
 }
