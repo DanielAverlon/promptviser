@@ -12,59 +12,71 @@ import (
 	"github.com/effective-security/promptviser/api/pb"
 	"github.com/effective-security/promptviser/internal/config"
 	"github.com/effective-security/promptviser/internal/llm"
+	"github.com/effective-security/promptviser/internal/reporter"
 	"github.com/effective-security/promptviser/internal/scanner"
 )
 
 // ScanCmd scans prompts and returns the findings
 type ScanCmd struct {
-	Path string `arg:"" help:"Path to the project directory to scan" type:"existingdir"`
-	Save bool   `help:"Save scan results to ~/.config/promptviser/scans/"`
+	Path    string `arg:"" help:"Path to the project directory to scan" type:"existingdir"`
+	Save    bool   `help:"Save scan results to ~/.config/promptviser/scans/"`
+	Verbose bool   `short:"v" help:"Verbose output"`
 }
 
 // Run the command
 func (a *ScanCmd) Run(c *cli.Cli) error {
 	ctx := c.Context()
 
-	fmt.Fprintf(c.ErrWriter(), "loading config: %s\n", c.Cfg)
+	fmt.Fprintf(c.ErrWriter(), "%s	loading config: %s\n", reporter.Working, c.Cfg)
 	cfg, err := config.Load(c.Cfg)
 	if err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s	failed to load config: %v\n", reporter.Warn, err)
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
 	provider, err := llm.New(cfg.LLM)
 	if err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s	failed to create LLM provider: %v\n", reporter.Warn, err)
 		return fmt.Errorf("failed to create LLM provider: %w", err)
 	}
 
-	fmt.Fprintf(c.ErrWriter(), "scanning: %s\n", a.Path)
+	fmt.Fprintf(c.ErrWriter(), "%s	scanning: %s\n", reporter.Working, a.Path)
 	results, err := scanner.Scan(ctx, a.Path, provider)
 	if err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s	scan failed: %v\n", reporter.Warn, err)
 		return fmt.Errorf("scan failed: %w", err)
 	}
-	fmt.Fprintf(c.ErrWriter(), "scanned %d file(s)\n", len(results))
+	fmt.Fprintf(c.ErrWriter(), "%s	scanned %d file(s)\n", reporter.Info, len(results))
 
 	adviser, err := c.AdviserClient(true)
 	if err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s	failed to connect to adviser: %v\n", reporter.Warn, err)
 		return fmt.Errorf("failed to connect to adviser: %w", err)
 	}
 
-	fmt.Fprintf(c.ErrWriter(), "matching rules...\n")
+	fmt.Fprintf(c.ErrWriter(), "%s	matching rules...\n", reporter.Working)
 	resp, err := adviser.MatchRules(ctx, &pb.MatchRulesRequest{
 		FileResults: results,
 	})
 	if err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s	rule matching failed: %v\n", reporter.Warn, err)
 		return fmt.Errorf("rule matching failed: %w", err)
 	}
-	fmt.Fprintf(c.ErrWriter(), "found findings in %d file(s)\n", len(resp.Findings))
+	fmt.Fprintf(c.ErrWriter(), "%s	found findings in %d file(s)\n", reporter.Info, len(resp.Findings))
 
 	if a.Save {
 		if err := saveScanResult(a.Path, resp); err != nil {
 			// non-fatal: print warning but still show results
-			fmt.Fprintf(c.ErrWriter(), "warning: failed to save scan: %v\n", err)
+			fmt.Fprintf(c.ErrWriter(), "%s	warning: failed to save scan: %v\n", reporter.Warn, err)
 		}
 	}
 
-	return c.Print(resp)
+	if a.Verbose || !reporter.IsTerminal() {
+		return c.Print(resp)
+	}
+
+	reporter.PrintScanSummary(resp, "scan-1234")
+	return nil
 }
 
 // saveScanResult writes the findings to ~/.config/promptviser/scans/<slug>_<timestamp>.json
@@ -95,6 +107,6 @@ func saveScanResult(scanPath string, resp *pb.MatchRulesResponse) error {
 		return err
 	}
 
-	fmt.Printf("saved: %s\n", dest)
+	fmt.Printf("%s	saved: %s\n", reporter.Info, dest)
 	return nil
 }

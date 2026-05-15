@@ -1,6 +1,7 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,6 +9,8 @@ import (
 	"time"
 
 	"github.com/effective-security/promptviser/api/cli"
+	"github.com/effective-security/promptviser/api/pb"
+	"github.com/effective-security/promptviser/internal/reporter"
 )
 
 // ScanInfo holds the parsed metadata from a saved scan filename.
@@ -25,12 +28,17 @@ type ScanListCmd struct {
 func (a *ScanListCmd) Run(c *cli.Cli) error {
 	scans, err := listScans()
 	if err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s  failed to list scans: %v\n", reporter.Warn, err)
 		return fmt.Errorf("failed to list scans: %w", err)
 	}
 
 	for _, scan := range scans {
 		if a.Path == "" || strings.Contains(scan.ProjectPath, a.Path) {
-			fmt.Fprintf(c.Writer(), "%-80s  %s\n", scan.Filename, scan.Timestamp.Format(time.RFC3339))
+			if !reporter.IsTerminal() {
+				fmt.Fprintf(c.Writer(), "%-80s  %s\n", scan.Filename, scan.Timestamp.Format(time.RFC3339))
+			} else {
+				fmt.Fprintf(c.Writer(), "%s\n", scan.Filename)
+			}
 		}
 	}
 	return nil
@@ -38,17 +46,31 @@ func (a *ScanListCmd) Run(c *cli.Cli) error {
 
 // ScanViewCmd prints the contents of a saved scan file.
 type ScanViewCmd struct {
-	File string `arg:"" help:"Scan filename (from 'scan-list') to view"`
+	File    string `arg:"" help:"Scan filename (from 'scan-list') to view"`
+	Verbose bool   `short:"v" help:"Verbose output"`
 }
 
 func (a *ScanViewCmd) Run(c *cli.Cli) error {
 	path := filepath.Join(getScansDir(), a.File)
 	data, err := os.ReadFile(path)
 	if err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s  failed to read scan file: %v\n", reporter.Warn, err)
 		return fmt.Errorf("failed to read scan file: %w", err)
 	}
-	_, err = c.Writer().Write(data)
-	return err
+
+	if a.Verbose || !reporter.IsTerminal() {
+		_, err = c.Writer().Write(data)
+		return err
+	}
+
+	var resp *pb.MatchRulesResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s  failed to parse scan file: %v\n", reporter.Warn, err)
+		return fmt.Errorf("failed to parse scan file: %w", err)
+	}
+
+	reporter.PrintScanSummary(resp, "scan-1234")
+	return nil
 }
 
 // ScanDeleteCmd deletes a saved scan file.
@@ -59,9 +81,10 @@ type ScanDeleteCmd struct {
 func (a *ScanDeleteCmd) Run(c *cli.Cli) error {
 	path := filepath.Join(getScansDir(), a.File)
 	if err := os.Remove(path); err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s  failed to delete scan: %v\n", reporter.Warn, err)
 		return fmt.Errorf("failed to delete scan: %w", err)
 	}
-	fmt.Fprintf(c.Writer(), "deleted: %s\n", a.File)
+	fmt.Fprintf(c.Writer(), "%s  deleted: %s\n", reporter.Info, a.File)
 	return nil
 }
 

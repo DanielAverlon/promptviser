@@ -1,8 +1,11 @@
 package command
 
 import (
+	"fmt"
+
 	"github.com/effective-security/promptviser/api/cli"
 	"github.com/effective-security/promptviser/api/client"
+	"github.com/effective-security/promptviser/internal/reporter"
 )
 
 // VersionCmd prints remote server version
@@ -13,11 +16,13 @@ type VersionCmd struct {
 func (a *VersionCmd) Run(ctx *cli.Cli) error {
 	c, err := ctx.HTTPClient(true)
 	if err != nil {
+		fmt.Fprintf(ctx.ErrWriter(), "%s  failed to create HTTP client: %v\n", reporter.Warn, err)
 		return err
 	}
 
 	res, err := client.NewHTTPStatusClient(c).Version(ctx.Context())
 	if err != nil {
+		fmt.Fprintf(ctx.ErrWriter(), "%s  failed to fetch version: %v\n", reporter.Warn, err)
 		return err
 	}
 
@@ -32,11 +37,13 @@ type ServerCmd struct {
 func (a *ServerCmd) Run(ctx *cli.Cli) error {
 	c, err := ctx.HTTPClient(true)
 	if err != nil {
+		fmt.Fprintf(ctx.ErrWriter(), "%s  failed to create HTTP client: %v\n", reporter.Warn, err)
 		return err
 	}
 
 	res, err := client.NewHTTPStatusClient(c).Status(ctx.Context())
 	if err != nil {
+		fmt.Fprintf(ctx.ErrWriter(), "%s  failed to fetch server status: %v\n", reporter.Warn, err)
 		return err
 	}
 
