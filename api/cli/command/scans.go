@@ -11,6 +11,7 @@ import (
 
 	"github.com/effective-security/promptviser/api/cli"
 	"github.com/effective-security/promptviser/api/pb"
+	"github.com/effective-security/promptviser/internal/diff"
 	"github.com/effective-security/promptviser/internal/reporter"
 )
 
@@ -142,13 +143,59 @@ func (a *ScanDeleteCmd) Run(c *cli.Cli) error {
 
 // ScanDiffCmd compares two saved scan files and reports new/resolved findings.
 type ScanDiffCmd struct {
-	A string `arg:"" help:"Earlier scan filename"`
-	B string `arg:"" help:"Later scan filename"`
+	A       string `arg:"" help:"Earlier scan filename"`
+	B       string `arg:"" help:"Later scan filename"`
+	Verbose bool   `short:"v" help:"Verbose output"`
 }
 
 func (a *ScanDiffCmd) Run(c *cli.Cli) error {
-	// TODO: implement diff logic
-	fmt.Fprintf(c.Writer(), "diff: %s vs %s (not yet implemented)\n", a.A, a.B)
+	filenameA, err := findScanByID(a.A)
+	if err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s  %v\n", reporter.Warn, err)
+		return err
+	}
+
+	filenameB, err := findScanByID(a.B)
+	if err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s  %v\n", reporter.Warn, err)
+		return err
+	}
+
+	pathA := filepath.Join(getScansDir(), filenameA)
+	pathB := filepath.Join(getScansDir(), filenameB)
+
+	dataA, err := os.ReadFile(pathA)
+	if err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s  failed to read scan file A: %v\n", reporter.Warn, err)
+		return fmt.Errorf("failed to read scan file A: %w", err)
+	}
+	dataB, err := os.ReadFile(pathB)
+	if err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s  failed to read scan file B: %v\n", reporter.Warn, err)
+		return fmt.Errorf("failed to read scan file B: %w", err)
+	}
+
+	var respA, respB *pb.MatchRulesResponse
+	if err := json.Unmarshal(dataA, &respA); err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s  failed to parse scan file A: %v\n", reporter.Warn, err)
+		return fmt.Errorf("failed to parse scan file A: %w", err)
+	}
+	if err := json.Unmarshal(dataB, &respB); err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s  failed to parse scan file B: %v\n", reporter.Warn, err)
+		return fmt.Errorf("failed to parse scan file B: %w", err)
+	}
+
+	diff, err := diff.CompareScans(respA, respB)
+	if err != nil {
+		fmt.Fprintf(c.ErrWriter(), "%s  failed to compare scans: %v\n", reporter.Warn, err)
+		return fmt.Errorf("failed to compare scans: %w", err)
+	}
+
+	if a.Verbose || !reporter.IsTerminal() {
+		return c.Print(diff)
+	}
+
+	reporter.PrintScanDiff(diff, a.A, a.B)
 	return nil
 }
 

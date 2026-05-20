@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	pb "github.com/effective-security/promptviser/api/pb"
 	"github.com/effective-security/promptviser/internal/llm"
@@ -34,7 +35,6 @@ type Result struct {
 //     Extensions      []string            // default: .yaml,.yml,.txt,.md
 //     ExcludeRules    map[string][]string // filename → rule IDs to suppress
 // }
-// TODO: reasoning along dimension scores
 // TODO: later add compliance to other yaml config frameworks
 
 // Scan walks dir, runs all three passes over every prompt file found, and
@@ -45,39 +45,51 @@ func Scan(ctx context.Context, dir string, provider llm.Provider) ([]*pb.FileSca
 		return nil, err
 	}
 
-	results := []*pb.FileScanResult{}
+	type result struct {
+		index  int
+		result *pb.FileScanResult
+		err    error
+	}
+	resultsCh := make(chan result, len(files))
+	var wg sync.WaitGroup
 
-	for _, path := range files {
-		fileResult := &pb.FileScanResult{
-			FileName: path,
-		}
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return nil, err
-		}
-
-		// Pass 1 — regex patterns
-		triggers := pass1.Check(content)
-		fileResult.StaticTriggers = append(fileResult.StaticTriggers, triggers...)
-
-		// Pass 2 — YAML/AST analysis
-		flags := pass2.Analyze(content)
-		fileResult.MetadataFlags = append(fileResult.MetadataFlags, flags...)
-
-		// Pass 3 — LLM scoring (receives pass1/pass2 signals as context)
-		scores, err := pass3.Score(ctx, content, fileResult.StaticTriggers, fileResult.MetadataFlags, provider)
-		if err != nil {
-			// for now return dummy scores on LLM error
-			scores = []*pb.DimensionScore{
-				{
-					Dimension: "error: " + err.Error(),
-					Score:     1,
-				},
+	for idx, path := range files {
+		wg.Add(1)
+		go func(idx int, path string) {
+			defer wg.Done()
+			fileResult := &pb.FileScanResult{
+				FileName: path,
 			}
-		}
-		fileResult.Scores = mergeScores(fileResult.Scores, scores)
+			content, err := os.ReadFile(path)
+			if err != nil {
+				resultsCh <- result{index: idx, result: fileResult, err: err}
+				return
+			}
 
-		results = append(results, fileResult)
+			fileResult.StaticTriggers = pass1.Check(content)
+			fileResult.MetadataFlags = pass2.Analyze(content)
+			scores, err := pass3.Score(ctx, content, fileResult.StaticTriggers, fileResult.MetadataFlags, provider)
+			if err != nil {
+				scores = []*pb.DimensionScore{{Dimension: "error: " + err.Error(), Score: 1}}
+			}
+			fileResult.Scores = mergeScores(fileResult.Scores, scores)
+
+			resultsCh <- result{index: idx, result: fileResult, err: err}
+		}(idx, path)
+	}
+
+	// Close channel once all goroutines finish
+	go func() {
+		wg.Wait()
+		close(resultsCh)
+	}()
+
+	results := make([]*pb.FileScanResult, len(files))
+	for res := range resultsCh {
+		if res.err != nil {
+			return nil, res.err
+		}
+		results[res.index] = res.result
 	}
 
 	return results, nil

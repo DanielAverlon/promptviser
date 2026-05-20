@@ -245,3 +245,32 @@ func Test_ScanCoverageFixed(t *testing.T) {
 		assert.Empty(t, r.StaticTriggers, "expected no triggers for %s", r.FileName)
 	}
 }
+
+func Test_ScanConcurrency(t *testing.T) {
+	ctx := context.Background()
+	provider, err := llm.New(llm.LLMConfig{
+		Provider: "stub",
+	})
+	require.NoError(t, err)
+
+	dir := "./testdata/fake-project"
+	results, err := Scan(ctx, dir, provider)
+	require.NoError(t, err)
+	require.NotNil(t, results)
+
+	// Check that all files were processed
+	files, err := collectPromptFiles(dir)
+	require.NoError(t, err)
+	require.Equal(t, len(files), len(results))
+
+	// Check that LLM scoring was called concurrently
+	// This is a stubbed test since the actual concurrency is hard to measure directly
+	// but we can ensure no duplicate scores exist for the same dimension in a file
+	for _, result := range results {
+		seen := make(map[string]bool)
+		for _, score := range result.Scores {
+			assert.False(t, seen[score.Dimension], "Duplicate score for dimension %s", score.Dimension)
+			seen[score.Dimension] = true
+		}
+	}
+}

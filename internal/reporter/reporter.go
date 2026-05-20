@@ -8,6 +8,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/effective-security/promptviser/api/pb"
+	"github.com/effective-security/promptviser/internal/diff"
 	"golang.org/x/term"
 )
 
@@ -164,5 +165,63 @@ func PrintScansList(scans map[string][]*ScanInfo) {
 	fmt.Println()
 	fmt.Println(divider)
 	fmt.Println(muted.Render("  Use pvctl scan-view <id> to view a saved scan"))
+	fmt.Println()
+}
+
+func PrintScanDiff(diff *diff.ScanDiff, idA, idB string) {
+	fmt.Println()
+	fmt.Printf("%s  %s\n",
+		bold.Render("SCAN COMPARISON"),
+		muted.Render(fmt.Sprintf("(%s vs %s)", idA, idB)))
+	fmt.Println(divider)
+
+	printDiffSection(fmt.Sprintf("Only in %s", idA), diff.OnlyInA)
+	printDiffSection(fmt.Sprintf("Only in %s", idB), diff.OnlyInB)
+	printDiffSection("In Both", diff.InBoth)
+
+	fmt.Println(divider)
+	fmt.Println(muted.Render("  Use pvctl scan-view <id> -v to see full details of each scan"))
+	fmt.Println()
+}
+
+func printDiffSection(label string, entries []diff.DiffEntry) {
+	fmt.Printf("  %s  %d finding(s)\n", muted.Render(label), len(entries))
+	if len(entries) == 0 {
+		return
+	}
+
+	byFile := make(map[string][]diff.DiffEntry)
+	fileOrder := make([]string, 0)
+	for _, e := range entries {
+		if _, ok := byFile[e.FilePath]; !ok {
+			fileOrder = append(fileOrder, e.FilePath)
+		}
+		byFile[e.FilePath] = append(byFile[e.FilePath], e)
+	}
+
+	for i, file := range fileOrder {
+		fileConnector := "├─"
+		childPrefix := "  │   "
+		if i == len(fileOrder)-1 {
+			fileConnector = "└─"
+			childPrefix = "      "
+		}
+		fmt.Printf("  %s  %s\n", fileConnector, bold.Render(ShortPath(file)))
+
+		findings := byFile[file]
+		for j, entry := range findings {
+			findingConnector := "├─"
+			if j == len(findings)-1 {
+				findingConnector = "└─"
+			}
+			sevLabel := fmt.Sprintf("[%s]", strings.ToUpper(entry.Severity))
+			sevStyled := SevStyle(entry.Severity).Render(sevLabel)
+			ruleName := entry.RuleName
+			if ruleName == "" {
+				ruleName = entry.Description
+			}
+			fmt.Printf("%s%s %s  %-8s %s\n", childPrefix, findingConnector, sevStyled, entry.ID, ruleName)
+		}
+	}
 	fmt.Println()
 }
