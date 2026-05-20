@@ -9,6 +9,7 @@ type promptMetadata struct {
 	Domain       string   `yaml:"domain"`
 	ModelID      string   `yaml:"model_id"`
 	Version      string   `yaml:"version"`
+	LastReviewed string   `yaml:"last_reviewed"`
 	Tools        []string `yaml:"tools"`
 }
 
