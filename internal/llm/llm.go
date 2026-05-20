@@ -10,8 +10,6 @@ import (
 	"github.com/effective-security/promptviser/api/pb"
 )
 
-// TODO: add agents
-
 // Provider is the interface pass3 calls to score a prompt.
 type Provider interface {
 	Score(ctx context.Context, promptContent []byte) ([]*pb.DimensionScore, error)
