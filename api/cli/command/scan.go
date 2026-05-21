@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -19,9 +20,10 @@ import (
 
 // ScanCmd scans prompts and returns the findings
 type ScanCmd struct {
-	Path    string `arg:"" help:"Path to the project directory to scan" type:"existingdir"`
-	Save    bool   `help:"Save scan results to ~/.config/promptviser/scans/"`
-	Verbose bool   `short:"v" help:"Verbose output"`
+	Path      string `arg:"" help:"Path to the project directory to scan" type:"existingdir"`
+	Save      bool   `help:"Save scan results to ~/.config/promptviser/scans/"`
+	Verbose   bool   `short:"v" help:"Verbose output"`
+	Remediate bool   `help:"Generate LLM remediation suggestions for each file with findings"`
 }
 
 // Run the command
@@ -77,6 +79,9 @@ func (a *ScanCmd) Run(c *cli.Cli) error {
 			return c.Print(resp)
 		}
 		reporter.PrintScanSummary(resp, scanID)
+		if a.Remediate {
+			runRemediation(ctx, c, provider, resp)
+		}
 		return nil
 	}
 
@@ -85,6 +90,9 @@ func (a *ScanCmd) Run(c *cli.Cli) error {
 	}
 
 	reporter.PrintScanSummary(resp, "")
+	if a.Remediate {
+		runRemediation(ctx, c, provider, resp)
+	}
 	return nil
 }
 
@@ -124,4 +132,41 @@ func saveScanResult(scanPath string, resp *pb.MatchRulesResponse) (string, error
 
 	fmt.Printf("%s\tsaved: %s\n", reporter.Info, dest)
 	return id, nil
+}
+
+// runRemediation calls the LLM remediation for each file that has findings and
+// prints lint-style output. It is shared by ScanCmd (--remediate) and ScanRemediateCmd.
+func runRemediation(ctx context.Context, c *cli.Cli, provider llm.Provider, resp *pb.MatchRulesResponse) {
+	for _, ff := range resp.Findings {
+		if len(ff.Findings) == 0 {
+			continue
+		}
+		content, err := os.ReadFile(ff.FileName)
+		if err != nil {
+			fmt.Fprintf(c.ErrWriter(), "%s\tskipping remediation for %s (cannot read file): %v\n", reporter.Warn, ff.FileName, err)
+			continue
+		}
+		violations := make([]llm.RemediationViolation, 0, len(ff.Findings))
+		for _, f := range ff.Findings {
+			violations = append(violations, llm.RemediationViolation{
+				RuleID:      f.RuleID,
+				RuleName:    f.Title,
+				Severity:    f.Severity,
+				TriggerType: f.TriggerType,
+				Remediation: f.Remediation,
+			})
+		}
+		userMsg, err := llm.RenderRemediationMessage(string(content), violations)
+		if err != nil {
+			fmt.Fprintf(c.ErrWriter(), "%s\tfailed to build remediation message for %s: %v\n", reporter.Warn, ff.FileName, err)
+			continue
+		}
+		fmt.Fprintf(c.ErrWriter(), "%s\tremediating: %s\n", reporter.Working, ff.FileName)
+		result, err := provider.Remediate(ctx, []byte(userMsg))
+		if err != nil {
+			fmt.Fprintf(c.ErrWriter(), "%s\tremediation failed for %s: %v\n", reporter.Warn, ff.FileName, err)
+			continue
+		}
+		reporter.PrintRemediations(ff.FileName, result.Remediations)
+	}
 }

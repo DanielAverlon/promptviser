@@ -17,8 +17,8 @@ func Test_parseScores(t *testing.T) {
 			name:  "Valid scores",
 			input: `{"risk": 0.8, "complexity": 0.5}`,
 			expected: []*pb.DimensionScore{
-				{Dimension: "risk", Score: 0.8},
 				{Dimension: "complexity", Score: 0.5},
+				{Dimension: "risk", Score: 0.8},
 			},
 		},
 		{
@@ -40,8 +40,8 @@ func Test_parseScores(t *testing.T) {
 				}    
 			`,
 			expected: []*pb.DimensionScore{
-				{Dimension: "risk", Score: 0.3},
 				{Dimension: "complexity", Score: 0.7},
+				{Dimension: "risk", Score: 0.3},
 			},
 		},
 		{
@@ -59,8 +59,8 @@ func Test_parseScores(t *testing.T) {
 }
 			`,
 			expected: []*pb.DimensionScore{
-				{Dimension: "pii_exposure", Score: 0.9},
 				{Dimension: "output_consequence", Score: 0.5},
+				{Dimension: "pii_exposure", Score: 0.9},
 			},
 		},
 	}

@@ -83,3 +83,17 @@ func (p *openaiProvider) Score(ctx context.Context, content []byte) ([]*pb.Dimen
 
 	return parseScores(resp.Choices[0].Message.Content)
 }
+
+func (p *openaiProvider) Remediate(ctx context.Context, content []byte) (*RemediationResult, error) {
+	resp, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+		Model: openai.ChatModel(p.model),
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(remediationSystemPrompt),
+			openai.UserMessage(string(content)),
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("llm/openai: %w", err)
+	}
+	return parseRemediations(resp.Choices[0].Message.Content)
+}

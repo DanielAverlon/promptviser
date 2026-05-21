@@ -57,3 +57,14 @@ func (p *anthropicProvider) Score(ctx context.Context, content []byte) ([]*pb.Di
 	}
 	return out, nil
 }
+
+func (p *anthropicProvider) Remediate(ctx context.Context, content []byte) (*RemediationResult, error) {
+	resp, err := p.client.Completions.New(ctx, anthropic.CompletionNewParams{
+		Model:  p.model,
+		Prompt: remediationSystemPrompt + "\n\n" + string(content),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("llm/anthropic: %w", err)
+	}
+	return parseRemediations(resp.Completion)
+}

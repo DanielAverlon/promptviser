@@ -5,14 +5,18 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/effective-security/promptviser/api/pb"
+	"gopkg.in/yaml.v3"
 )
 
-// Provider is the interface pass3 calls to score a prompt.
+// Provider is the interface pass3 calls to score a prompt and optionally
+// generate remediation suggestions.
 type Provider interface {
 	Score(ctx context.Context, promptContent []byte) ([]*pb.DimensionScore, error)
+	Remediate(ctx context.Context, content []byte) (*RemediationResult, error)
 }
 
 type LLMConfig struct {
@@ -42,10 +46,35 @@ func New(cfg LLMConfig) (Provider, error) {
 	}
 }
 
-// metaPrompt is the system prompt used by all providers to score a prompt file.
+// scorePromptYAML is the raw YAML file that carries version metadata and the system prompt.
 //
-//go:embed score_prompt.md
+//go:embed score_prompt.yaml
+var scorePromptYAML string
+
+// remediationPromptYAML is the raw YAML file for the remediation prompt.
+//
+//go:embed remediation_prompt.yaml
+var remediationPromptYAML string
+
+// metaPrompt is the system prompt used by all providers to score a prompt file.
+// It is extracted from score_prompt.yaml at init time.
 var metaPrompt string
+
+// UserMessageTemplate is the Go text/template for the user-turn message.
+// It is extracted from score_prompt.yaml at init time.
+var UserMessageTemplate string
+
+func init() {
+	var cfg struct {
+		SystemPrompt        string `yaml:"system_prompt"`
+		UserMessageTemplate string `yaml:"prompt"`
+	}
+	if err := yaml.Unmarshal([]byte(scorePromptYAML), &cfg); err != nil {
+		panic("score_prompt.yaml: " + err.Error())
+	}
+	metaPrompt = cfg.SystemPrompt
+	UserMessageTemplate = cfg.UserMessageTemplate
+}
 
 // parseScores extracts dimension scores from a raw LLM response string.
 // It accepts both the two-key format {"reasoning":{…},"scores":{…}} produced
@@ -71,6 +100,7 @@ func parseScores(raw string) ([]*pb.DimensionScore, error) {
 		for dim, score := range twoKey.Scores {
 			result = append(result, &pb.DimensionScore{Dimension: dim, Score: score})
 		}
+		sort.Slice(result, func(i, j int) bool { return result[i].Dimension < result[j].Dimension })
 		return result, nil
 	}
 
@@ -83,5 +113,6 @@ func parseScores(raw string) ([]*pb.DimensionScore, error) {
 	for dim, score := range flat {
 		result = append(result, &pb.DimensionScore{Dimension: dim, Score: score})
 	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Dimension < result[j].Dimension })
 	return result, nil
 }

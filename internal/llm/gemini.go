@@ -54,3 +54,24 @@ func (p *geminiProvider) Score(ctx context.Context, content []byte) ([]*pb.Dimen
 
 	return parseScores(resp.Candidates[0].Content.Parts[0].Text)
 }
+
+func (p *geminiProvider) Remediate(ctx context.Context, content []byte) (*RemediationResult, error) {
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+		APIKey:  p.apiKey,
+		Backend: genai.BackendGeminiAPI,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("llm/gemini: failed to create client: %w", err)
+	}
+
+	prompt := remediationSystemPrompt + "\n\n" + string(content)
+	resp, err := client.Models.GenerateContent(ctx, p.model, genai.Text(prompt), nil)
+	if err != nil {
+		return nil, fmt.Errorf("llm/gemini: %w", err)
+	}
+
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return nil, fmt.Errorf("llm/gemini: empty response")
+	}
+	return parseRemediations(resp.Candidates[0].Content.Parts[0].Text)
+}
