@@ -12,9 +12,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Provider is the interface pass3 calls to score a prompt.
+// Provider is the interface pass3 calls to score a prompt and optionally
+// generate remediation suggestions.
 type Provider interface {
 	Score(ctx context.Context, promptContent []byte) ([]*pb.DimensionScore, error)
+	Remediate(ctx context.Context, content []byte) (*RemediationResult, error)
 }
 
 type LLMConfig struct {
@@ -48,6 +50,11 @@ func New(cfg LLMConfig) (Provider, error) {
 //
 //go:embed score_prompt.yaml
 var scorePromptYAML string
+
+// remediationPromptYAML is the raw YAML file for the remediation prompt.
+//
+//go:embed remediation_prompt.yaml
+var remediationPromptYAML string
 
 // metaPrompt is the system prompt used by all providers to score a prompt file.
 // It is extracted from score_prompt.yaml at init time.

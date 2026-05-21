@@ -53,3 +53,27 @@ func (p *ollamaProvider) Score(ctx context.Context, content []byte) ([]*pb.Dimen
 
 	return parseScores(result.Response)
 }
+
+func (p *ollamaProvider) Remediate(ctx context.Context, content []byte) (*RemediationResult, error) {
+	body, _ := json.Marshal(map[string]any{
+		"model":  p.model,
+		"prompt": remediationSystemPrompt + "\n\n" + string(content),
+		"stream": false,
+	})
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/api/generate", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("llm/ollama: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Response string `json:"response"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("llm/ollama: failed to decode response: %w", err)
+	}
+	return parseRemediations(result.Response)
+}

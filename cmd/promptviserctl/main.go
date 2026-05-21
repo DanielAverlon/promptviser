@@ -18,13 +18,14 @@ type app struct {
 	Server  command.ServerCmd  `cmd:"" help:"print remote server status"`
 	//Caller     command.CallerCmd     `cmd:"" help:"print caller info"`
 
-	Submit     command.SubmitCmd     `cmd:"" help:"Submit data for analysis"`
-	Rules      command.RulesCmd      `cmd:"" help:"Print remote server rules"`
-	Scan       command.ScanCmd       `cmd:"" help:"Scan prompts and return the findings"`
-	ScanList   command.ScanListCmd   `cmd:"" help:"List saved scan results"`
-	ScanView   command.ScanViewCmd   `cmd:"" help:"View a saved scan result"`
-	ScanDelete command.ScanDeleteCmd `cmd:"" help:"Delete a saved scan result"`
-	ScanDiff   command.ScanDiffCmd   `cmd:"" help:"Diff two saved scan results"`
+	Submit        command.SubmitCmd        `cmd:"" help:"Submit data for analysis"`
+	Rules         command.RulesCmd         `cmd:"" help:"Print remote server rules"`
+	Scan          command.ScanCmd          `cmd:"" help:"Scan prompts and return the findings"`
+	ScanList      command.ScanListCmd      `cmd:"" help:"List saved scan results"`
+	ScanView      command.ScanViewCmd      `cmd:"" help:"View a saved scan result"`
+	ScanDelete    command.ScanDeleteCmd    `cmd:"" help:"Delete a saved scan result"`
+	ScanDiff      command.ScanDiffCmd      `cmd:"" help:"Diff two saved scan results"`
+	ScanRemediate command.ScanRemediateCmd `cmd:"" help:"Generate LLM remediation suggestions for a saved scan"`
 }
 
 func main() {

@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/effective-security/promptviser/api/pb"
 	"github.com/effective-security/promptviser/internal/diff"
+	"github.com/effective-security/promptviser/internal/llm"
 	"golang.org/x/term"
 )
 
@@ -222,6 +223,44 @@ func printDiffSection(label string, entries []diff.DiffEntry) {
 			}
 			fmt.Printf("%s%s %s  %-8s %s\n", childPrefix, findingConnector, sevStyled, entry.ID, ruleName)
 		}
+	}
+	fmt.Println()
+}
+
+var (
+	remDel = lipgloss.NewStyle().Foreground(lipgloss.Color("196")) // red  for - lines
+	remAdd = lipgloss.NewStyle().Foreground(lipgloss.Color("34"))  // green for + lines
+	remHdr = lipgloss.NewStyle().Bold(true)
+	remRsn = lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Italic(true)
+)
+
+// PrintRemediations renders lint-style remediation output for one file.
+// Each edit shows the original snippet (red -) and replacement (green +),
+// making it easy to build a programmatic diff downstream.
+func PrintRemediations(fileName string, edits []llm.RemediationEdit) {
+	if len(edits) == 0 {
+		return
+	}
+	fmt.Printf("%s\n", remHdr.Render(fileName))
+	for i, e := range edits {
+		connector := "├─"
+		if i == len(edits)-1 {
+			connector = "└─"
+		}
+		sevLabel := SevStyle(e.Severity).Render(fmt.Sprintf("[%s]", strings.ToUpper(e.Severity)))
+		fmt.Printf("  %s %s  %-8s %s\n", connector, sevLabel, e.RuleID, e.Reason)
+
+		if e.Original == "" {
+			fmt.Printf("     %s\n", remDel.Render("- (pure addition)"))
+		} else {
+			for _, line := range strings.Split(e.Original, "\n") {
+				fmt.Printf("     %s\n", remDel.Render("- "+line))
+			}
+		}
+		for _, line := range strings.Split(e.Replacement, "\n") {
+			fmt.Printf("     %s\n", remAdd.Render("+ "+line))
+		}
+		fmt.Printf("     %s\n", remRsn.Render("↳ "+e.Reason))
 	}
 	fmt.Println()
 }
