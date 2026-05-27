@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/effective-security/promptviser/api/pb"
+	"github.com/effective-security/promptviser/internal/llm"
 	"github.com/stretchr/testify/require"
 )
 
@@ -93,4 +94,27 @@ func Test_PrintScansList(t *testing.T) {
 
 	PrintScansList(scans)
 	// t.Fail() // uncomment to see output
+}
+
+func Test_PrintRemediations(t *testing.T) {
+	fileName := "example_remediations.json"
+	edits := []llm.RemediationEdit{
+		{
+			RuleID:      "rule-1234",
+			Severity:    "high",
+			Original:    "{{.UserInput}}",
+			Replacement: "[REDACTED USER INPUT]",
+			Reason:      "The original prompt contains sensitive information that could lead to data leaks.",
+		},
+		{
+			RuleID:      "rule-5678",
+			Severity:    "medium",
+			Original:    "This is a medium severity issue that should be addressed.",
+			Replacement: "Consider rephrasing the prompt to improve clarity.",
+			Reason:      "The original prompt is ambiguous and may lead to misunderstandings.",
+		},
+	}
+
+	PrintRemediations(fileName, edits)
+	//t.Fail() // uncomment to see output
 }

@@ -160,3 +160,34 @@ func (s *postproxyAdviserClient) GetRules(ctx context.Context, req *pb.GetRulesR
 	}
 	return &res, nil
 }
+
+// GetStats returns aggregated rule-violation counts across all recorded scans.
+func (s *proxyAdviserServer) GetStats(ctx context.Context, req *pb.GetStatsRequest, opts ...grpc.CallOption) (*pb.GetStatsResponse, error) {
+	ctx = correlation.WithMetaFromContext(ctx)
+	res, err := s.srv.GetStats(ctx, req)
+	if err != nil {
+		return nil, httperror.NewFromPb(err)
+	}
+	return res, nil
+}
+
+// GetStats returns aggregated rule-violation counts across all recorded scans.
+func (s *proxyAdviserClient) GetStats(ctx context.Context, req *pb.GetStatsRequest) (*pb.GetStatsResponse, error) {
+	ctx = correlation.WithMetaFromContext(ctx)
+	res, err := s.remote.GetStats(ctx, req, s.callOpts...)
+	if err != nil {
+		return nil, httperror.NewFromPb(err)
+	}
+	return res, nil
+}
+
+// GetStats returns aggregated rule-violation counts across all recorded scans.
+func (s *postproxyAdviserClient) GetStats(ctx context.Context, req *pb.GetStatsRequest) (*pb.GetStatsResponse, error) {
+	var res pb.GetStatsResponse
+	path := pb.Adviser_GetStats_FullMethodName
+	_, _, err := s.client.Post(ctx, path, req, &res)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}

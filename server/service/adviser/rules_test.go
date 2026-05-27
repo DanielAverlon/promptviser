@@ -84,6 +84,9 @@ func TestMatchRules_HighConsequenceLowOversight_ReturnsREL003(t *testing.T) {
 	mockDB.EXPECT().
 		GetAllRules(gomock.Any(), "", "").
 		Return(sampleRules, nil)
+	mockDB.EXPECT().
+		RecordFindings(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).AnyTimes()
 
 	req := &pb.MatchRulesRequest{
 		FileResults: []*pb.FileScanResult{
@@ -112,6 +115,9 @@ func TestMatchRules_StaticTrigger_ReturnsSEC001(t *testing.T) {
 	mockDB.EXPECT().
 		GetAllRules(gomock.Any(), "", "").
 		Return(sampleRules, nil)
+	mockDB.EXPECT().
+		RecordFindings(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).AnyTimes()
 
 	req := &pb.MatchRulesRequest{
 		FileResults: []*pb.FileScanResult{
@@ -138,6 +144,9 @@ func TestMatchRules_CombinedRule_RequiresBothStaticAndMeta(t *testing.T) {
 	mockDB.EXPECT().
 		GetAllRules(gomock.Any(), "", "").
 		Return(sampleRules, nil)
+	mockDB.EXPECT().
+		RecordFindings(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).AnyTimes()
 
 	req := &pb.MatchRulesRequest{
 		FileResults: []*pb.FileScanResult{
@@ -235,6 +244,9 @@ func TestMatchRules_MultipleFiles_MatchesCorrectly(t *testing.T) {
 	mockDB.EXPECT().
 		GetAllRules(gomock.Any(), "", "").
 		Return(sampleRules, nil)
+	mockDB.EXPECT().
+		RecordFindings(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).AnyTimes()
 
 	req := &pb.MatchRulesRequest{
 		FileResults: []*pb.FileScanResult{

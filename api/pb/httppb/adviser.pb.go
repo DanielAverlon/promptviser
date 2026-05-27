@@ -47,6 +47,9 @@ func GetAdviserHTTPHandler(s pb.AdviserServer, withAccessCheck pb.CheckAccessFun
 		case pb.Adviser_GetRules_FullMethodName:
 			res, err = s.GetRules(ctx, req.(*pb.GetRulesRequest))
 
+		case pb.Adviser_GetStats_FullMethodName:
+			res, err = s.GetStats(ctx, req.(*pb.GetStatsRequest))
+
 		default:
 			err = httperror.Malformed("invalid action: %s", action)
 		}

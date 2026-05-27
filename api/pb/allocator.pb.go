@@ -83,6 +83,11 @@ var methods = map[string]*MethodInfo{
 		CliCmd:    "get-rules",
 	},
 
+	Adviser_GetStats_FullMethodName: {
+		Allocator: func() any { return new(GetStatsRequest) },
+		CliCmd:    "get-stats",
+	},
+
 	Status_Version_FullMethodName: {
 		Allocator: func() any { return new(emptypb.Empty) },
 		CliCmd:    "version",
