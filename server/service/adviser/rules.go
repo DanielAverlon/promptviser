@@ -7,6 +7,9 @@ import (
 
 	pb "github.com/effective-security/promptviser/api/pb"
 	"github.com/effective-security/promptviser/internal/adviserdb"
+	"github.com/effective-security/promptviser/internal/adviserdb/model"
+	"github.com/effective-security/x/guid"
+	"github.com/effective-security/xlog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -33,7 +36,26 @@ func (s *Service) MatchRules(ctx context.Context, req *pb.MatchRulesRequest) (*p
 		}
 	}
 
-	return &pb.MatchRulesResponse{Findings: findings}, nil
+	resp := &pb.MatchRulesResponse{Findings: findings}
+
+	// Persist violations for stats aggregation — best-effort; never fail the RPC.
+	if len(findings) > 0 {
+		scanID := guid.MustCreate()
+		records := make([]model.FindingRecord, 0, len(findings))
+		for _, pf := range findings {
+			for _, f := range pf.Findings {
+				records = append(records, model.FindingRecord{
+					RuleID:   f.RuleID,
+					FileName: pf.FileName,
+				})
+			}
+		}
+		if recErr := s.db.RecordFindings(ctx, scanID, records); recErr != nil {
+			logger.KV(xlog.WARNING, "reason", "record_findings_failed", "err", recErr.Error())
+		}
+	}
+
+	return resp, nil
 }
 
 // FindingsForFile returns a PromptFindings grouping all matched rules for a

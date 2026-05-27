@@ -36,6 +36,14 @@ service Adviser {
     };
     option (es.api.cli_cmd) = "get-rules";
   };
+  // GetStats returns aggregated rule-violation counts across all recorded scans.
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse) {
+    option (google.api.http) = {
+      post : "/pb.Adviser/GetStats",
+      body : "*"
+    };
+    option (es.api.cli_cmd) = "get-stats";
+  };
 }
 
 message SubmitRequest { string Data = 1 [ json_name = "Data" ]; }
@@ -114,4 +122,26 @@ message GetRulesRequest {
 // GetRulesResponse returns the full rule catalogue.
 message GetRulesResponse {
   repeated Finding Rules = 1 [ json_name = "Rules" ];
+}
+
+// GetStatsRequest carries optional parameters for the GetStats RPC.
+message GetStatsRequest {
+  // Limit is the maximum number of top violations to return. 0 = default (10).
+  int32 Limit = 1 [ json_name = "Limit" ];
+}
+
+// RuleViolationCount represents one rule's aggregated violation total.
+message RuleViolationCount {
+  string RuleID    = 1 [ json_name = "RuleID" ];
+  string Title     = 2 [ json_name = "Title" ];
+  string Severity  = 3 [ json_name = "Severity" ];
+  string Domain    = 4 [ json_name = "Domain" ];
+  repeated string Standards = 5 [ json_name = "Standards" ];
+  int64 Count      = 6 [ json_name = "Count" ];
+}
+
+// GetStatsResponse returns aggregated violation statistics.
+message GetStatsResponse {
+  repeated RuleViolationCount TopViolations = 1 [ json_name = "TopViolations" ];
+  int64 TotalScans = 2 [ json_name = "TotalScans" ];
 }

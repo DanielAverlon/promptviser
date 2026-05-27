@@ -26,11 +26,19 @@ type AdviserReadonlyDb interface {
 	// GetAllRules returns all rules, optionally filtered by domain and/or severity.
 	// An empty string for domain or severity means "no filter".
 	GetAllRules(ctx context.Context, domain, severity string) ([]*model.Rule, error)
+
+	// GetRuleStats returns the top-N most-violated rules aggregated from the
+	// findings table.  If limit <= 0 it defaults to 10.
+	GetRuleStats(ctx context.Context, limit int) ([]*model.RuleStatEntry, error)
 }
 
 // AdviserDb defines an interface for CRUD operations on Adviser
 type AdviserDb interface {
 	AdviserReadonlyDb
+
+	// RecordFindings persists every rule violation from a single MatchRules
+	// call so they can be aggregated by GetRuleStats.
+	RecordFindings(ctx context.Context, scanID string, records []model.FindingRecord) error
 }
 
 // Provider provides complete DB access

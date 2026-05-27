@@ -77,6 +77,7 @@ func TestCheckErrIDConflict(t *testing.T) {
 
 func Test_ListTables(t *testing.T) {
 	expectedTables := []string{
+		"findings",
 		"rules",
 		"schema_migrations",
 	}

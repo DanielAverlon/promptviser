@@ -291,3 +291,43 @@ func PrintRemediations(fileName string, edits []llm.RemediationEdit) {
 	}
 	fmt.Println()
 }
+
+// PrintStats renders the top-N violated rules returned by GetStats.
+func PrintStats(resp *pb.GetStatsResponse) {
+	fmt.Println()
+	heading := bold.Render("TOP RULE VIOLATIONS")
+	if resp.TotalScans > 0 {
+		heading += "  " + muted.Render(fmt.Sprintf("(across %d scan(s))", resp.TotalScans))
+	}
+	fmt.Println(heading)
+	fmt.Println(divider)
+
+	if len(resp.TopViolations) == 0 {
+		fmt.Println(muted.Render("  No findings recorded yet."))
+		fmt.Println()
+		return
+	}
+
+	// prefix: "  1.  [HIGH]  PRIV-001  count:999  " ≈ 38 chars
+	nameWidth := termWidth() - 38
+	for i, v := range resp.TopViolations {
+		sevLabel := SevStyle(v.Severity).Render(fmt.Sprintf("[%-6s]", strings.ToUpper(v.Severity)))
+		countStr := muted.Render(fmt.Sprintf("×%d", v.Count))
+		fmt.Printf("  %2d.  %s  %-8s  %s  %s\n",
+			i+1, sevLabel, v.RuleID, countStr, truncate(nameWidth).Render(v.Title))
+		if len(v.Standards) > 0 {
+			fmt.Printf("         %s  %s\n",
+				muted.Render("Standards:"),
+				muted.Render(strings.Join(v.Standards, " · ")))
+		}
+		if v.Domain != "" {
+			fmt.Printf("         %s  %s\n\n",
+				muted.Render("Domain:   "),
+				muted.Render(v.Domain))
+		} else {
+			fmt.Println()
+		}
+	}
+	fmt.Println(divider)
+	fmt.Println()
+}

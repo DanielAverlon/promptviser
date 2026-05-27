@@ -20,6 +20,7 @@ type app struct {
 
 	Submit        command.SubmitCmd        `cmd:"" help:"Submit data for analysis"`
 	Rules         command.RulesCmd         `cmd:"" help:"Print remote server rules"`
+	Stats         command.StatsCmd         `cmd:"" help:"Show top rule violations recorded by the server"`
 	Scan          command.ScanCmd          `cmd:"" help:"Scan prompts and return the findings"`
 	ScanList      command.ScanListCmd      `cmd:"" help:"List saved scan results"`
 	ScanView      command.ScanViewCmd      `cmd:"" help:"View a saved scan result"`

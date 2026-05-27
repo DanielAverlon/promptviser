@@ -23,6 +23,7 @@ const (
 	Adviser_Submit_FullMethodName     = "/pb.Adviser/Submit"
 	Adviser_MatchRules_FullMethodName = "/pb.Adviser/MatchRules"
 	Adviser_GetRules_FullMethodName   = "/pb.Adviser/GetRules"
+	Adviser_GetStats_FullMethodName   = "/pb.Adviser/GetStats"
 )
 
 // AdviserClient is the client API for Adviser service.
@@ -38,6 +39,8 @@ type AdviserClient interface {
 	// GetRules returns all rules so the client can cache them locally for
 	// offline Pass 1 evaluation.
 	GetRules(ctx context.Context, in *GetRulesRequest, opts ...grpc.CallOption) (*GetRulesResponse, error)
+	// GetStats returns aggregated rule-violation counts across all recorded scans.
+	GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*GetStatsResponse, error)
 }
 
 type adviserClient struct {
@@ -78,6 +81,16 @@ func (c *adviserClient) GetRules(ctx context.Context, in *GetRulesRequest, opts 
 	return out, nil
 }
 
+func (c *adviserClient) GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*GetStatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetStatsResponse)
+	err := c.cc.Invoke(ctx, Adviser_GetStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AdviserServer is the server API for Adviser service.
 // All implementations should embed UnimplementedAdviserServer
 // for forward compatibility.
@@ -91,6 +104,8 @@ type AdviserServer interface {
 	// GetRules returns all rules so the client can cache them locally for
 	// offline Pass 1 evaluation.
 	GetRules(context.Context, *GetRulesRequest) (*GetRulesResponse, error)
+	// GetStats returns aggregated rule-violation counts across all recorded scans.
+	GetStats(context.Context, *GetStatsRequest) (*GetStatsResponse, error)
 }
 
 // UnimplementedAdviserServer should be embedded to have
@@ -108,6 +123,9 @@ func (UnimplementedAdviserServer) MatchRules(context.Context, *MatchRulesRequest
 }
 func (UnimplementedAdviserServer) GetRules(context.Context, *GetRulesRequest) (*GetRulesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetRules not implemented")
+}
+func (UnimplementedAdviserServer) GetStats(context.Context, *GetStatsRequest) (*GetStatsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetStats not implemented")
 }
 func (UnimplementedAdviserServer) testEmbeddedByValue() {}
 
@@ -183,6 +201,24 @@ func _Adviser_GetRules_Handler(srv any, ctx context.Context, dec func(any) error
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Adviser_GetStats_Handler(srv any, ctx context.Context, dec func(any) error, interceptor grpc.UnaryServerInterceptor) (any, error) {
+	in := new(GetStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdviserServer).GetStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Adviser_GetStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req any) (any, error) {
+		return srv.(AdviserServer).GetStats(ctx, req.(*GetStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Adviser_ServiceDesc is the grpc.ServiceDesc for Adviser service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -201,6 +237,10 @@ var Adviser_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRules",
 			Handler:    _Adviser_GetRules_Handler,
+		},
+		{
+			MethodName: "GetStats",
+			Handler:    _Adviser_GetStats_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

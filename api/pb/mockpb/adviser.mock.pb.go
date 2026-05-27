@@ -22,6 +22,9 @@ type MockAdviserServer struct {
 	// responses to return if err == nil
 	Resps []proto.Message
 	Index int
+
+	// GetStatsResp is the dedicated response for GetStats calls (GetStatsResponse is not a proto.Message).
+	GetStatsResp *pb.GetStatsResponse
 }
 
 // SetResponse sets a single response without errors
@@ -76,4 +79,16 @@ func (m *MockAdviserServer) GetRules(ctx context.Context, req *pb.GetRulesReques
 		return nil, m.Err
 	}
 	return m.next().(*pb.GetRulesResponse), nil
+}
+
+// GetStats returns aggregated rule-violation counts across all recorded scans.
+
+func (m *MockAdviserServer) GetStats(ctx context.Context, req *pb.GetStatsRequest) (*pb.GetStatsResponse, error) {
+	if m.Err != nil {
+		return nil, m.Err
+	}
+	if m.GetStatsResp != nil {
+		return m.GetStatsResp, nil
+	}
+	return &pb.GetStatsResponse{}, nil
 }
