@@ -40,6 +40,22 @@ func IsTerminal() bool {
 	return term.IsTerminal(int(os.Stdout.Fd()))
 }
 
+// termWidth returns the current terminal column width, or 120 as a safe default.
+func termWidth() int {
+	if w, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && w > 0 {
+		return w
+	}
+	return 120
+}
+
+// truncate returns a MaxWidth style that clips text to fit within cols columns.
+func truncate(cols int) lipgloss.Style {
+	if cols < 10 {
+		cols = 10
+	}
+	return lipgloss.NewStyle().MaxWidth(cols)
+}
+
 func SevStyle(sev string) lipgloss.Style {
 	switch strings.ToLower(sev) {
 	case "high":
@@ -68,6 +84,8 @@ func PrintScanSummary(results *pb.MatchRulesResponse, scanID string) {
 		fmt.Println()
 		fmt.Println("  " + bold.Render(ShortPath(ff.FileName)))
 
+		// prefix: "  ├─ [HIGH]  SEC-001  " ≈ 26 chars
+		nameWidth := termWidth() - 26
 		for i, f := range ff.Findings {
 			totalFindings++
 			connector := "├─"
@@ -79,7 +97,7 @@ func PrintScanSummary(results *pb.MatchRulesResponse, scanID string) {
 			styled := SevStyle(f.Severity).Render(sevLabel)
 
 			fmt.Printf("  %s %s  %-8s %s\n",
-				connector, styled, f.RuleID, f.Title)
+				connector, styled, f.RuleID, truncate(nameWidth).Render(f.Title))
 
 			switch strings.ToLower(f.Severity) {
 			case "high":
@@ -125,10 +143,12 @@ func PrintRulesList(rules *pb.GetRulesResponse) {
 		muted.Render(fmt.Sprintf("(%d total)", len(rules.Rules))))
 	fmt.Println(divider)
 
+	// prefix: " SEC-001  HIGH    " ≈ 20 chars
+	nameWidth := termWidth() - 20
 	for _, r := range rules.Rules {
 		sevStyled := SevStyle(r.Severity).Render(
 			fmt.Sprintf("%-6s", strings.ToUpper(r.Severity)))
-		fmt.Printf(" %-8s %s  %s\n", r.RuleID, sevStyled, r.Title)
+		fmt.Printf(" %-8s %s  %s\n", r.RuleID, sevStyled, truncate(nameWidth).Render(r.Title))
 		fmt.Printf("          %s  %s\n\n",
 			muted.Render("Standards:"),
 			muted.Render(strings.Join(r.Standards, " · ")))
@@ -221,7 +241,9 @@ func printDiffSection(label string, entries []diff.DiffEntry) {
 			if ruleName == "" {
 				ruleName = entry.Description
 			}
-			fmt.Printf("%s%s %s  %-8s %s\n", childPrefix, findingConnector, sevStyled, entry.ID, ruleName)
+			// childPrefix(6) + "├─ [HIGH]  SEC-001  " ≈ 30 chars
+			nameWidth := termWidth() - 30
+			fmt.Printf("%s%s %s  %-8s %s\n", childPrefix, findingConnector, sevStyled, entry.ID, truncate(nameWidth).Render(ruleName))
 		}
 	}
 	fmt.Println()
@@ -244,23 +266,28 @@ func PrintRemediations(fileName string, edits []llm.RemediationEdit) {
 	fmt.Printf("%s\n", remHdr.Render(fileName))
 	for i, e := range edits {
 		connector := "├─"
+		childPrefix := "  │   "
 		if i == len(edits)-1 {
 			connector = "└─"
+			childPrefix = "      "
 		}
+		// prefix: "  ├─ [HIGH]  SEC-001  " ≈ 26 chars
+		reasonWidth := termWidth() - 26
 		sevLabel := SevStyle(e.Severity).Render(fmt.Sprintf("[%s]", strings.ToUpper(e.Severity)))
-		fmt.Printf("  %s %s  %-8s %s\n", connector, sevLabel, e.RuleID, e.Reason)
+		fmt.Printf("  %s %s  %-8s %s\n", connector, sevLabel, e.RuleID, truncate(reasonWidth).Render(e.Reason))
 
 		if e.Original == "" {
-			fmt.Printf("     %s\n", remDel.Render("- (pure addition)"))
+			fmt.Printf("%s%s\n", childPrefix, remDel.Render("- (pure addition)"))
 		} else {
 			for _, line := range strings.Split(e.Original, "\n") {
-				fmt.Printf("     %s\n", remDel.Render("- "+line))
+				fmt.Printf("%s%s\n", childPrefix, remDel.Render("- "+line))
 			}
 		}
 		for _, line := range strings.Split(e.Replacement, "\n") {
-			fmt.Printf("     %s\n", remAdd.Render("+ "+line))
+			fmt.Printf("%s%s\n", childPrefix, remAdd.Render("+ "+line))
 		}
-		fmt.Printf("     %s\n", remRsn.Render("↳ "+e.Reason))
+		// childPrefix(6) + "↳ " ≈ 8 chars
+		fmt.Printf("%s%s\n", childPrefix, remRsn.Render(truncate(termWidth()-8).Render("↳ "+e.Reason)))
 	}
 	fmt.Println()
 }

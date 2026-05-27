@@ -30,6 +30,7 @@ func TestMain(m *testing.M) {
 
 	// ensure task are not started
 	os.Setenv("PROMPTVISER_HOSTNAME", "UNIT_TEST")
+	os.Setenv("PROMPTVISER_JWT_SEED", "testseed")
 
 	// Run the tests
 	rc := m.Run()
