@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/effective-security/promptviser/api/pb"
+	"github.com/effective-security/promptviser/internal/diff"
 	"github.com/effective-security/promptviser/internal/llm"
 	"github.com/stretchr/testify/require"
 )
@@ -117,4 +118,43 @@ func Test_PrintRemediations(t *testing.T) {
 
 	PrintRemediations(fileName, edits)
 	//t.Fail() // uncomment to see output
+}
+
+func Test_PrintScanDiff(t *testing.T) {
+	scanDiff := &diff.ScanDiff{
+		OnlyInA: []diff.DiffEntry{
+			{ID: "SEC-001", RuleName: "Missing delimiter", Severity: "High", FilePath: "prompts/agent.yaml"},
+		},
+		OnlyInB: []diff.DiffEntry{
+			{ID: "ACC-001", RuleName: "No disclosure", Severity: "Medium", FilePath: "prompts/chat.yaml"},
+		},
+		InBoth: []diff.DiffEntry{
+			{ID: "PRIV-001", RuleName: "PII variable", Severity: "High", FilePath: "prompts/shared.yaml"},
+		},
+	}
+
+	PrintScanDiff(scanDiff, "scan-aaa", "scan-bbb")
+	// t.Fail() // uncomment to see output
+}
+
+func Test_PrintScanDiff_Empty(t *testing.T) {
+	PrintScanDiff(&diff.ScanDiff{}, "scan-aaa", "scan-bbb")
+}
+
+func Test_PrintStats_WithViolations(t *testing.T) {
+	resp := &pb.GetStatsResponse{
+		TotalScans: 5,
+		TopViolations: []*pb.RuleViolationCount{
+			{RuleID: "SEC-001", Title: "Missing delimiter", Severity: "High", Domain: "Security", Standards: []string{"OWASP LLM01"}, Count: 42},
+			{RuleID: "PRIV-001", Title: "PII variable", Severity: "High", Domain: "Privacy", Standards: []string{"GDPR Art.25"}, Count: 17},
+			{RuleID: "REL-003", Title: "No human oversight", Severity: "Medium", Count: 3},
+		},
+	}
+
+	PrintStats(resp)
+	// t.Fail() // uncomment to see output
+}
+
+func Test_PrintStats_Empty(t *testing.T) {
+	PrintStats(&pb.GetStatsResponse{})
 }

@@ -1,9 +1,11 @@
 package pass3
 
 import (
+	"context"
 	"os"
 	"testing"
 
+	"github.com/effective-security/promptviser/internal/llm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,6 +24,18 @@ func Test_buildUserMessage(t *testing.T) {
 }
 
 func Test_Score(t *testing.T) {
-	t.Skip()
-	// This is a placeholder test. In a real test, you'd use a mock LLM provider
+	ctx := context.Background()
+	provider, err := llm.New(llm.LLMConfig{Provider: "stub"})
+	require.NoError(t, err)
+
+	scores, err := Score(ctx, []byte("You are helpful. User: {{.Input}}"), []string{"MISSING_DELIMITER"}, []string{"is_user_facing"}, provider)
+	require.NoError(t, err)
+	assert.Len(t, scores, 6)
+
+	dims := make(map[string]float64, len(scores))
+	for _, d := range scores {
+		dims[d.Dimension] = float64(d.Score)
+	}
+	assert.Contains(t, dims, "pii_exposure")
+	assert.Contains(t, dims, "human_oversight")
 }

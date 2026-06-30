@@ -93,6 +93,34 @@ func TestLoadYAMLOverrideByHostname(t *testing.T) {
 	assert.True(t, c.Metrics.GetDisabled())
 }
 
+func TestLoadWithOverride_ValidConfig(t *testing.T) {
+	cfgFile, err := configloader.GetAbsFilename("testdata/test_config.yaml", ".")
+	require.NoError(t, err)
+
+	var c Configuration
+	err = LoadWithOverride(cfgFile, "", &c, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "promptviser", c.ServiceName)
+}
+
+func TestLoadWithOverride_WithOverrideFile(t *testing.T) {
+	cfgFile, err := configloader.GetAbsFilename("testdata/test_config.yaml", ".")
+	require.NoError(t, err)
+	overrideFile, err := configloader.GetAbsFilename("testdata/test_config-override.yaml", ".")
+	require.NoError(t, err)
+
+	var c Configuration
+	err = LoadWithOverride(cfgFile, overrideFile, &c, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "promptviser", c.ServiceName)
+}
+
+func TestLoadWithOverride_MissingConfigFile_ReturnsError(t *testing.T) {
+	var c Configuration
+	err := LoadWithOverride("nonexistent.yaml", "", &c, nil)
+	require.Error(t, err)
+}
+
 func TestLoadYAMLWithOverride(t *testing.T) {
 	cfgFile, err := configloader.GetAbsFilename("testdata/test_config.yaml", ".")
 	require.NoError(t, err, "unable to determine config file")

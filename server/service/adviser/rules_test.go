@@ -7,6 +7,7 @@ import (
 
 	pb "github.com/effective-security/promptviser/api/pb"
 	"github.com/effective-security/promptviser/internal/adviserdb"
+	"github.com/effective-security/promptviser/internal/adviserdb/model"
 	"github.com/effective-security/promptviser/mocks/mockadviserdb"
 	"github.com/effective-security/promptviser/server/service/adviser"
 	"github.com/stretchr/testify/require"
@@ -323,4 +324,157 @@ func ruleIDsForFile(findings []*pb.PromptFindings, fileName string) []string {
 		}
 	}
 	return nil
+}
+
+// ----- GetRules tests ---------------------------------------------------------
+
+func TestGetRules_ReturnsAllRules(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	mockDB.EXPECT().
+		GetAllRules(gomock.Any(), "", "").
+		Return(sampleRules, nil)
+
+	resp, err := svc.GetRules(context.Background(), &pb.GetRulesRequest{})
+	require.NoError(t, err)
+	require.Len(t, resp.Rules, len(sampleRules))
+
+	ids := make([]string, len(resp.Rules))
+	for i, r := range resp.Rules {
+		ids[i] = r.RuleID
+	}
+	require.Contains(t, ids, "REL-003")
+	require.Contains(t, ids, "SEC-001")
+}
+
+func TestGetRules_FiltersByDomainAndSeverity(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	filtered := []*adviserdb.Rule{sampleRules[2]} // SEC-001 only
+	mockDB.EXPECT().
+		GetAllRules(gomock.Any(), "Security & Injection Resistance", "High").
+		Return(filtered, nil)
+
+	resp, err := svc.GetRules(context.Background(), &pb.GetRulesRequest{
+		Domain:   "Security & Injection Resistance",
+		Severity: "High",
+	})
+	require.NoError(t, err)
+	require.Len(t, resp.Rules, 1)
+	require.Equal(t, "SEC-001", resp.Rules[0].RuleID)
+}
+
+func TestGetRules_NilRequest_ReturnsError(t *testing.T) {
+	svc, _ := newService(t)
+
+	_, err := svc.GetRules(context.Background(), nil)
+	require.Error(t, err)
+}
+
+func TestGetRules_DBError_ReturnsError(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	mockDB.EXPECT().
+		GetAllRules(gomock.Any(), "", "").
+		Return(nil, fmt.Errorf("connection refused"))
+
+	_, err := svc.GetRules(context.Background(), &pb.GetRulesRequest{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to fetch rules")
+}
+
+func TestGetRules_EmptyDB_ReturnsEmptyList(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	mockDB.EXPECT().
+		GetAllRules(gomock.Any(), "", "").
+		Return([]*adviserdb.Rule{}, nil)
+
+	resp, err := svc.GetRules(context.Background(), &pb.GetRulesRequest{})
+	require.NoError(t, err)
+	require.Empty(t, resp.Rules)
+}
+
+// ----- GetStats tests ---------------------------------------------------------
+
+func TestGetStats_ReturnsTopViolations(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	entries := []*model.RuleStatEntry{
+		{RuleID: "SEC-001", Name: "Missing delimiter", Severity: "High", Domain: "Security", Count: 42},
+		{RuleID: "PRIV-001", Name: "PII variable", Severity: "High", Domain: "Privacy", Count: 17},
+	}
+	mockDB.EXPECT().
+		GetRuleStats(gomock.Any(), 10).
+		Return(entries, nil)
+
+	resp, err := svc.GetStats(context.Background(), &pb.GetStatsRequest{})
+	require.NoError(t, err)
+	require.Len(t, resp.TopViolations, 2)
+	require.Equal(t, "SEC-001", resp.TopViolations[0].RuleID)
+	require.Equal(t, int64(42), resp.TopViolations[0].Count)
+	require.Equal(t, "PRIV-001", resp.TopViolations[1].RuleID)
+}
+
+func TestGetStats_CustomLimit(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	mockDB.EXPECT().
+		GetRuleStats(gomock.Any(), 5).
+		Return([]*model.RuleStatEntry{}, nil)
+
+	resp, err := svc.GetStats(context.Background(), &pb.GetStatsRequest{Limit: 5})
+	require.NoError(t, err)
+	require.Empty(t, resp.TopViolations)
+}
+
+func TestGetStats_NilRequest_UsesDefaultLimit(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	mockDB.EXPECT().
+		GetRuleStats(gomock.Any(), 10).
+		Return([]*model.RuleStatEntry{}, nil)
+
+	resp, err := svc.GetStats(context.Background(), nil)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestGetStats_DBError_ReturnsError(t *testing.T) {
+	svc, mockDB := newService(t)
+
+	mockDB.EXPECT().
+		GetRuleStats(gomock.Any(), 10).
+		Return(nil, fmt.Errorf("timeout"))
+
+	_, err := svc.GetStats(context.Background(), nil)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to fetch stats")
+}
+
+// ----- Submit tests -----------------------------------------------------------
+
+func TestSubmit_ReturnsID(t *testing.T) {
+	svc, _ := newService(t)
+
+	resp, err := svc.Submit(context.Background(), &pb.SubmitRequest{})
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.ID)
+}
+
+// ----- Service lifecycle tests ------------------------------------------------
+
+func TestService_Name(t *testing.T) {
+	svc, _ := newService(t)
+	require.Equal(t, adviser.ServiceName, svc.Name())
+}
+
+func TestService_IsReady(t *testing.T) {
+	svc, _ := newService(t)
+	require.True(t, svc.IsReady())
+}
+
+func TestService_Close_DoesNotPanic(t *testing.T) {
+	svc, _ := newService(t)
+	require.NotPanics(t, func() { svc.Close() })
 }
