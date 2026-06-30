@@ -19,6 +19,8 @@ func Test_collectPromptFiles(t *testing.T) {
 	expectedFiles := []string{
 		"testdata/fake-project/prompts/patient-intake.yaml",
 		"testdata/fake-project/prompts/rag-search.yaml",
+		"testdata/fake-project/prompts/fully-compliant.yaml",
+		"testdata/fake-project/prompts/hardcoded-secret.yaml",
 		"testdata/fake-project/prompts/more/hiring-bot.yaml",
 		"testdata/fake-project/prompts/crisis-support.yaml",
 		"testdata/fake-project/prompts/more/agent-executor.yaml",
